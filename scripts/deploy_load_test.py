@@ -3,6 +3,8 @@ run one forward pass on a random frame, and report. Run on the robot computer BE
 field day; a DINO policy that cannot import src/ or download its backbone fails here, not
 on the lawn.   python3 deploy_load_test.py [run_dir ...]
 """
+import os as _os0; _os0.environ.setdefault("XFORMERS_DISABLED", "1")  # Thor 2026-10-08: xFormers has no kernel for this GPU; DINOv2 falls back to plain attention
+
 import glob, os, sys, time
 HERE = os.path.dirname(os.path.abspath(__file__))
 for p in (HERE, os.path.dirname(HERE)):
