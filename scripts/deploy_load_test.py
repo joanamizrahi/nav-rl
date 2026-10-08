@@ -20,7 +20,13 @@ for r in runs:
         obs = {"rgb": np.random.randint(0, 255, (H, W, 3), np.uint8), "goal": np.array([3.0, 0.0, 0.0], np.float32)}
         a, _ = m.predict(obs, deterministic=True); t1 = time.time()
         for _ in range(20): m.predict(obs, deterministic=True)
-        print(f"{os.path.basename(r)}: OK  obs {W}x{H}  action {np.round(a, 3)}  load {t1-t:.1f}s  {1000*(time.time()-t1)/20:.1f} ms/step  env_config {'yes' if os.path.exists(os.path.join(r, 'env_config.json')) else 'MISSING'}")
+        ms = 1000 * (time.time() - t1) / 20
+        # the same image check the cluster evals print: action on a black frame vs on noise.
+        # ~0.35-0.45 for the policies we deploy; below 0.05 means the policy ignores the camera.
+        black = {"rgb": np.zeros((H, W, 3), np.uint8), "goal": obs["goal"]}
+        d = float(np.abs(m.predict(black, deterministic=True)[0] - m.predict(obs, deterministic=True)[0]).sum())
+        print(f"{os.path.basename(r)}: OK  obs {W}x{H}  {ms:.1f} ms/step  image check |a(noise)-a(black)| = {d:.3f} "
+              f"({'uses the image' if d > 0.05 else 'IGNORES THE IMAGE'})  env_config {'yes' if os.path.exists(os.path.join(r, 'env_config.json')) else 'MISSING'}")
         ok += 1
     except Exception as e:
         print(f"{os.path.basename(r)}: FAILED  {type(e).__name__}: {str(e)[:200]}")
