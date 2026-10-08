@@ -32,9 +32,9 @@ Usage on the Jetson:
         --checkpoint ppo_800000_steps.zip --goal_dx 5.0 --goal_dy 0.0 \
         [--rate 2.0] [--dry_run]
 """
-import os as _os0; _os0.environ.setdefault("XFORMERS_DISABLED", "1")  # Thor 2026-10-08: xFormers has no kernel for this GPU; DINOv2 falls back to plain attention
 
 from __future__ import annotations
+import os as _os0; _os0.environ.setdefault("XFORMERS_DISABLED", "1")  # Thor 2026-10-08: xFormers has no kernel for this GPU; DINOv2 falls back to plain attention
 
 import argparse
 import json
