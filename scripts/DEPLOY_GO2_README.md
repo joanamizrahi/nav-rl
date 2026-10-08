@@ -50,17 +50,29 @@ you are watching for. A run nobody predicted is hard to learn from.
 ## 2. Bringup
 
 1. Robot on, **terrain mode** on the controller.
-2. **Orin** (`ssh unitree@192.168.123.18`, pw `123`), three terminals:
+2. **Orin** (`ssh -J soar@<thor> unitree@192.168.123.18`, pw `123`), three terminals
+   (2026-10-08: this is the lab's current sequence, from
+   `local_map_baselines/docs/outdoor_test_commands.md`; the old
+   `python3 go2w_sdk/motion_control.py` path no longer exists):
    ```bash
-   cd ~/soar-go2/ws/src/go2w_sdk/ && python3 go2w_sdk/motion_control.py
+   cd ~ && ros2 run domain_bridge domain_bridge bridge_config.yaml
    ros2 launch livox_ros_driver2 msg_MID360_launch.py
-   ros2 launch fast_lio mapping.launch.py config_file:=mid360.yaml
+   ros2 launch go2w_sdk motion_control.launch.py config_file:=$HOME/navigation_ws/src/soar-go2/go2w_sdk/configs/sdk.yaml
    ```
-3. **Thor** — camera:
+3. **Thor** — camera. The Odin runs in a Docker container; after every boot
+   first `echo 100 | sudo tee /sys/module/usbcore/parameters/usbfs_memory_mb`, then:
    ```bash
-   ros2 launch realsense2_camera rs_launch.py camera_name:='camera' \
-       rgb_camera.color_profile:=640x480x30
+   cd ~/Documents/navigation_ws/src/navigation_pipeline/ && docker run -it --rm --privileged --net=host \
+       -e CYCLONEDDS_URI='<CycloneDDS><Domain><General><AllowMulticast>spdp</AllowMulticast></General></Domain></CycloneDDS>' \
+       -v /dev/bus/usb:/dev/bus/usb -v $(pwd)/data/odin1_interface:/root/odin1_interface \
+       -v $(pwd)/data/odin1_config:/root/ros2_ws/src/odin_ros_driver/config odin1:v1
+   # inside the container:
+   ros2 launch odin_ros_driver odin1_ros2.launch.py
+   # second Thor terminal:
+   ros2 launch local_map_baselines frame_transformation_odin.launch.py
    ```
+   Do NOT start the lab's motion planner (`motion_planner_runner.py`) or the
+   perception stack for a policy test: this node publishes `/cmd_vel` itself.
 4. **Thor** — an estop terminal, command pre-typed and not yet run:
    ```bash
    ros2 topic pub /estop std_msgs/msg/Bool "data: true" --once
