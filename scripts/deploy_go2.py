@@ -46,6 +46,15 @@ def quat_to_yaw(x, y, z, w) -> float:
     return float(np.arctan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z)))
 
 
+# The DINO policies pickle src.policy.encoders.FrozenBackboneExtractor, so `src`
+# must be importable: from the repo (scripts/../src) or from a copy of src/ placed
+# next to this file on Thor (~/nav_policy/src). 2026-10-07.
+import os as _os, sys as _sys
+for _p in (_os.path.dirname(_os.path.abspath(__file__)),
+           _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))):
+    if _p not in _sys.path:
+        _sys.path.insert(0, _p)
+
 def preprocess(bgr: np.ndarray, W: int = 560, H: int = 336) -> np.ndarray:
     import cv2
     h, w = bgr.shape[:2]
@@ -153,6 +162,7 @@ def main():
         cfg_path = os.path.join(os.path.dirname(os.path.dirname(
             os.path.abspath(args.checkpoint))), "env_config.json")
         src = "CLI default"
+        fwd_only = False
         if os.path.exists(cfg_path):
             with open(cfg_path) as fh:
                 envc = json.load(fh)
@@ -162,6 +172,10 @@ def main():
             # one asks for precision it never learned.
             if "goal_radius" in envc and not args.goal_radius_set:
                 args.goal_radius = float(envc["goal_radius"])
+            # 2026-09-28: every policy since 09-07 trained forward_only (a negative throttle
+            # sample meant "stand still", never "reverse"). Mirror that here, or a negative
+            # mean action would drive the robot backwards into something it never saw.
+            fwd_only = bool(envc.get("forward_only", False))
         print(f"[deploy] loaded {args.checkpoint}")
         print(f"[deploy] observation from checkpoint: {OBS_W}x{OBS_H} (WxH)")
         print(f"[deploy] step {step_m} m, yaw {yaw_rad} rad per decision  [{src}]")
@@ -269,6 +283,8 @@ def main():
                        "goal": np.array([dx, dy, bearing], dtype=np.float32)}
                 action, _ = model.predict(obs, deterministic=True)
                 v = float(np.clip(action[0] * step_m * args.rate, -args.max_v, args.max_v))
+                if fwd_only:
+                    v = max(0.0, v)
                 w = float(np.clip(action[1] * yaw_rad * args.rate, -args.max_w, args.max_w))
             ms = (time.perf_counter() - t0) * 1e3
             self.lat.append(ms)
