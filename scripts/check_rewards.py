@@ -1343,7 +1343,8 @@ def main():
                                             steps=np.array([q["step"] for q in _stored]),
                                             corners_world=np.asarray(_cw, np.float32), robot_pos=np.asarray(r["pos"], np.float32),
                                             cur_rgb=np.asarray(rgb).astype(np.uint8), cur_labels=np.asarray(r["lab"]).astype(np.int8),
-                                            cur_K=np.asarray(r["K"], np.float32), cur_w2c=np.asarray(r["w2c"], np.float32))
+                                            cur_K=np.asarray(r["K"], np.float32), cur_w2c=np.asarray(r["w2c"], np.float32),
+                                            cur_alpha=(np.asarray(au, np.float32) if au is not None else np.zeros(np.asarray(rgb).shape[:2], np.float32)))
                     mem = memory_strip(_fm, _cw, pal, non_trav, r["pos"],
                                        out_h=rgb.shape[0], out_w=rgb.shape[1])
                     if mem is None:
