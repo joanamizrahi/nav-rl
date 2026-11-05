@@ -26,7 +26,7 @@ def main():
     ap.add_argument("--goal_xy", required=True, help="x,y in the nav frame")
     ap.add_argument("--spawn_frames", default="", help="lo,hi frame range to highlight")
     ap.add_argument("--clouds_dir",
-                    default="/scratch/m000204-pm06b/joana/outputs/scene_clouds/clouds")
+                    default="/scratch/m000204-pm07b/joana/outputs/scene_clouds/clouds")
     ap.add_argument("--out", default="goal_check.png")
     ap.add_argument("--z_max", type=float, default=0.15)
     ap.add_argument("--radius", type=float, default=0.5, help="arrival radius")

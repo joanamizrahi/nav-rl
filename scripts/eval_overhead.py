@@ -3,14 +3,14 @@ non-walkable, grey unknown, recorded walk in orange, each episode's path in
 its own colour with S (spawn) and a star at the goal. Sighted and blind evals
 of the SAME seed are drawn side by side. Runs on the login node (cv2)."""
 import sys, json, numpy as np
-sys.path.insert(0, "/scratch/m000204-pm06b/joana/nav-rl")
+sys.path.insert(0, "/scratch/m000204-pm07b/joana/nav-rl")
 import cv2
 from src.eval.reward_map import build_label_grid
 from src.eval.traversability import load_traversability
 scene, out = sys.argv[1], sys.argv[2]; runs = [a.split("=", 1) for a in sys.argv[3:]]   # label=metrics.json
-c = np.load(f"/scratch/m000204-pm06b/joana/outputs/scene_clouds/clouds/{scene}_cloud.npz")
+c = np.load(f"/scratch/m000204-pm07b/joana/outputs/scene_clouds/clouds/{scene}_cloud.npz")
 walk = (np.asarray(c["traj_positions"], np.float32) * np.array([1.0, -1.0, 1.0], np.float32))[:, :2]
-scores = load_traversability("/scratch/m000204-pm06b/joana/nav-rl/config/traversability_v14_walkway.yaml"); nontrav = scores <= 0.1
+scores = load_traversability("/scratch/m000204-pm07b/joana/nav-rl/config/traversability_v14_walkway.yaml"); nontrav = scores <= 0.1
 g = build_label_grid(c["points"], c["labels"].astype(int), nontrav, res=0.1, inflate_m=0.1, inflate_classes=(10, 11, 13), walk_xy=walk)
 L = g.labels; known = L >= 0; nt = known & nontrav[np.clip(L, 0, len(nontrav) - 1)]
 import os; ppm = float(os.environ.get("PPM", "25")); ZOOM = os.environ.get("ZOOM", "0") == "1"

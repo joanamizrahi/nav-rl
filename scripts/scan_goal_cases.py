@@ -18,7 +18,7 @@ Writes per scene: a JSON of the pairs (spawn, goal, class, detour ratio,
 min corridor width) and an overhead picture with examples; prints a table.
 
     python scripts/scan_goal_cases.py --scenes gnd_AUw360 gnd_AUd210 \
-        --out_dir /scratch/m000204-pm06b/joana/outputs/goal_cases
+        --out_dir /scratch/m000204-pm07b/joana/outputs/goal_cases
 """
 from __future__ import annotations
 
@@ -129,8 +129,8 @@ def path_length(path, res):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scenes", nargs="+", required=True)
-    ap.add_argument("--clouds_dir", default="/scratch/m000204-pm06b/joana/outputs/scene_clouds/clouds")
-    ap.add_argument("--poses_dir", default="/scratch/m000204-pm06b/joana/outputs/poses", help="draw the RECORDED camera heading (grey) beside the walk direction (orange) at each spawn frame")
+    ap.add_argument("--clouds_dir", default="/scratch/m000204-pm07b/joana/outputs/scene_clouds/clouds")
+    ap.add_argument("--poses_dir", default="/scratch/m000204-pm07b/joana/outputs/poses", help="draw the RECORDED camera heading (grey) beside the walk direction (orange) at each spawn frame")
     ap.add_argument("--heading", choices=["recorded", "walk"], default="recorded",
                     help="which heading centres the cone and orients the spawn: recorded = the env default (camera yaw from the poses file); walk = SPAWNHEADWALK=1")
     ap.add_argument("--trav", default="config/traversability_v14_walkway.yaml")

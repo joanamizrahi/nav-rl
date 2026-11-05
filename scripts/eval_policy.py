@@ -509,9 +509,9 @@ def main():
     ap.add_argument("--clips_dir", required=True)
     ap.add_argument("--poses_dir", required=True)
     ap.add_argument("--labels_dir", required=True)
-    ap.add_argument("--model_path", default="/scratch/m000204-pm06b/joana/NeoVerse/models")
+    ap.add_argument("--model_path", default="/scratch/m000204-pm07b/joana/NeoVerse/models")
     ap.add_argument("--reconstructor_path",
-                    default="/scratch/m000204-pm06b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
+                    default="/scratch/m000204-pm07b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
     ap.add_argument("--out_dir", type=Path, required=True)
     ap.add_argument("--videos", type=int, default=3)
     ap.add_argument("--obs_cache", default=None,
@@ -527,7 +527,7 @@ def main():
                     help="match the policy's training rule: footprint follows "
                          "the commanded motion direction")
     ap.add_argument("--clouds_dir",
-                    default="/scratch/m000204-pm06b/joana/outputs/scene_clouds/clouds",
+                    default="/scratch/m000204-pm07b/joana/outputs/scene_clouds/clouds",
                     help="proximity needs the scene clouds; without it that "
                          "term is silently zero in eval while active in training")
     ap.add_argument("--step_size_m", type=float, default=0.3,
@@ -540,7 +540,7 @@ def main():
                     help="match the policy's training rule: negative velocity "
                          "clamps to 0")
     ap.add_argument("--live_ckpt",
-                    default="/scratch/m000204-pm06b/joana/runs/train_semantic_v10/checkpoint-epoch-30.safetensors")
+                    default="/scratch/m000204-pm07b/joana/runs/train_semantic_v10/checkpoint-epoch-30.safetensors")
     ap.add_argument("--render_height", type=int, default=None,
                     help="render-high/observe-small: match the checkpoint's "
                          "training RENDERH (world at this res, obs downsized)")

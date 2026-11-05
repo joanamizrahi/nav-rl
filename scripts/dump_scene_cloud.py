@@ -17,10 +17,10 @@ Runs on Marlowe (GPU). ~30 s per scene on a warm node.
 Usage:
     python scripts/dump_scene_cloud.py \
         --scenes rugd_trail_00 rugd_creek_00 rugd_park-1_00 rugd_park-2_00 \
-        --clips_dir /scratch/m000204-pm06b/joana/data/rugd_clips \
-        --poses_dir /scratch/m000204-pm06b/joana/outputs/poses \
-        --labels_dir /scratch/m000204-pm06b/joana/NeoVerse/outputs/sam3_labels \
-        --out_dir /scratch/m000204-pm06b/joana/outputs/scene_clouds
+        --clips_dir /scratch/m000204-pm07b/joana/data/rugd_clips \
+        --poses_dir /scratch/m000204-pm07b/joana/outputs/poses \
+        --labels_dir /scratch/m000204-pm07b/joana/NeoVerse/outputs/sam3_labels \
+        --out_dir /scratch/m000204-pm07b/joana/outputs/scene_clouds
 """
 from __future__ import annotations
 
@@ -165,9 +165,9 @@ def main():
     ap.add_argument("--clips_dir", required=True)
     ap.add_argument("--poses_dir", required=True)
     ap.add_argument("--labels_dir", required=True)
-    ap.add_argument("--model_path", default="/scratch/m000204-pm06b/joana/NeoVerse/models")
+    ap.add_argument("--model_path", default="/scratch/m000204-pm07b/joana/NeoVerse/models")
     ap.add_argument("--reconstructor_path",
-                    default="/scratch/m000204-pm06b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
+                    default="/scratch/m000204-pm07b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
     ap.add_argument("--out_dir", required=True, type=Path)
     ap.add_argument("--max_points", type=int, default=400_000)
     ap.add_argument("--ply", action="store_true",

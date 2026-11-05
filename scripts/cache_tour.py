@@ -62,9 +62,9 @@ def main():
     ap.add_argument("--obs_cache", required=True,
                     help="cache root(s), comma-separated for hybrid")
     ap.add_argument("--model_path",
-                    default="/scratch/m000204-pm06b/joana/NeoVerse/models")
+                    default="/scratch/m000204-pm07b/joana/NeoVerse/models")
     ap.add_argument("--reconstructor_path",
-                    default="/scratch/m000204-pm06b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
+                    default="/scratch/m000204-pm07b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
     ap.add_argument("--out", required=True)
     ap.add_argument("--frames", type=int, default=240)
     ap.add_argument("--amplitude", type=float, default=1.2,

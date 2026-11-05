@@ -22,7 +22,7 @@ COLL = re.compile(r"footprint coll\s+([\d.]+)\s+steps[^:]*:\s*(\d+)/(\d+)")
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("logs", nargs="+")
-    ap.add_argument("--survey_root", default="/scratch/m000204-pm06b/joana/outputs/check_rew_campus")
+    ap.add_argument("--survey_root", default="/scratch/m000204-pm07b/joana/outputs/check_rew_campus")
     ap.add_argument("--look_ahead", type=float, default=1.5)
     args = ap.parse_args()
     rows = {}

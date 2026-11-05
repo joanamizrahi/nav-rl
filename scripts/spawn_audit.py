@@ -68,7 +68,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scene", required=True)
     ap.add_argument("--clouds_dir",
-                    default="/scratch/m000204-pm06b/joana/outputs/scene_clouds/clouds")
+                    default="/scratch/m000204-pm07b/joana/outputs/scene_clouds/clouds")
     ap.add_argument("--trav_path", default="config/traversability_v14_walkway.yaml")
     ap.add_argument("--lat_jitter", type=float, default=0.4)
     ap.add_argument("--yaw_jitter", type=float, default=20.0)

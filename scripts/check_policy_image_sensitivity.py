@@ -19,7 +19,7 @@ if not hasattr(np, "_core"):
         except Exception:
             pass
 print("numpy", np.__version__, "torch", torch.__version__, "python", sys.executable)
-sys.path.insert(0, "/scratch/m000204-pm06b/joana/nav-rl")
+sys.path.insert(0, "/scratch/m000204-pm07b/joana/nav-rl")
 from stable_baselines3 import PPO
 
 ckpt, video = sys.argv[1], sys.argv[2]

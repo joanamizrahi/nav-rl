@@ -29,7 +29,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--metrics", required=True)
     ap.add_argument("--scene", required=True)
-    ap.add_argument("--clouds_dir", default="/scratch/m000204-pm06b/joana/outputs/scene_clouds/clouds")
+    ap.add_argument("--clouds_dir", default="/scratch/m000204-pm07b/joana/outputs/scene_clouds/clouds")
     ap.add_argument("--trav", default="config/traversability_v14_walkway.yaml")
     ap.add_argument("--collahead", type=float, default=0.6)
     ap.add_argument("--inflate", type=float, default=0.1)

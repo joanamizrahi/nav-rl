@@ -38,8 +38,8 @@ def find_clip(scene: str, dirs) -> "Path | None":
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scenes", nargs="+", required=True)
-    ap.add_argument("--clouds_dir", default="/scratch/m000204-pm06b/joana/outputs/scene_clouds/clouds")
-    ap.add_argument("--clips_dirs", default="/scratch/m000204-pm06b/joana/data/gnd_clips,/scratch/m000204-pm06b/joana/data/rugd_clips,/scratch/m000204-pm06b/joana/data/gnd_survey")
+    ap.add_argument("--clouds_dir", default="/scratch/m000204-pm07b/joana/outputs/scene_clouds/clouds")
+    ap.add_argument("--clips_dirs", default="/scratch/m000204-pm07b/joana/data/gnd_clips,/scratch/m000204-pm07b/joana/data/rugd_clips,/scratch/m000204-pm07b/joana/data/gnd_survey")
     ap.add_argument("--trav", default="config/traversability_v14_walkway.yaml")
     ap.add_argument("--out_dir", required=True)
     ap.add_argument("--every", type=int, default=10, help="label / show every Nth walk frame")

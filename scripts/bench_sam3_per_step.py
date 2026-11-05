@@ -31,7 +31,7 @@ import numpy as np
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
-for _p in (REPO_ROOT.parent / "NeoVerse", Path("/scratch/m000204-pm06b/joana/NeoVerse")):
+for _p in (REPO_ROOT.parent / "NeoVerse", Path("/scratch/m000204-pm07b/joana/NeoVerse")):
     if _p.exists():
         sys.path.insert(0, str(_p))
 
@@ -43,8 +43,8 @@ def run_render(args) -> None:
     import cv2
 
     clips_dir = args.clips_dir or (
-        "/scratch/m000204-pm06b/joana/data/gnd_clips" if args.scene.startswith("gnd_")
-        else "/scratch/m000204-pm06b/joana/data/rugd_clips")
+        "/scratch/m000204-pm07b/joana/data/gnd_clips" if args.scene.startswith("gnd_")
+        else "/scratch/m000204-pm07b/joana/data/rugd_clips")
     frames_dir = args.out / f"frames_{args.scene}"
     frames_dir.mkdir(parents=True, exist_ok=True)
 
@@ -170,17 +170,17 @@ def main():
     ap.add_argument("--mode", choices=("render", "sam3"), required=True)
     ap.add_argument("--scene", default="gnd_AUw360")
     ap.add_argument("--out", type=Path,
-                    default=Path("/scratch/m000204-pm06b/joana/outputs/sam3_bench"))
+                    default=Path("/scratch/m000204-pm07b/joana/outputs/sam3_bench"))
     # render mode
     ap.add_argument("--checkpoint", default=None, help="semantics LoRA the policy trained on")
     ap.add_argument("--clips_dir", default=None,
                     help="default: gnd_clips for gnd_* scenes, rugd_clips otherwise")
-    ap.add_argument("--poses_dir", default="/scratch/m000204-pm06b/joana/outputs/poses")
+    ap.add_argument("--poses_dir", default="/scratch/m000204-pm07b/joana/outputs/poses")
     ap.add_argument("--labels_dir",
-                    default="/scratch/m000204-pm06b/joana/NeoVerse/outputs/sam3_labels_v14")
-    ap.add_argument("--model_path", default="/scratch/m000204-pm06b/joana/NeoVerse/models")
+                    default="/scratch/m000204-pm07b/joana/NeoVerse/outputs/sam3_labels_v14")
+    ap.add_argument("--model_path", default="/scratch/m000204-pm07b/joana/NeoVerse/models")
     ap.add_argument("--reconstructor_path",
-                    default="/scratch/m000204-pm06b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
+                    default="/scratch/m000204-pm07b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
     ap.add_argument("--palette", type=int, default=4)
     ap.add_argument("--width", type=int, default=560)
     ap.add_argument("--height", type=int, default=336)

@@ -14,8 +14,8 @@ arm over their whole timesteps").
 """
 import argparse, csv, glob, os, re, sys
 
-LOGS = "/scratch/m000204-pm06b/joana"
-OUT = "/scratch/m000204-pm06b/joana/outputs"
+LOGS = "/scratch/m000204-pm07b/joana"
+OUT = "/scratch/m000204-pm07b/joana/outputs"
 # std / entropy_loss / approx_kl / clip_fraction: whether the policy is still
 # EXPLORING. A reward flat for 100k steps at a fixed band is either a local optimum
 # or a collapsed action std -- and only the second shows up here (2026-09-25,

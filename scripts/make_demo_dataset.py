@@ -54,9 +54,9 @@ def main():
     ap.add_argument("--clips_dir", required=True)
     ap.add_argument("--poses_dir", required=True)
     ap.add_argument("--labels_dir", required=True)
-    ap.add_argument("--model_path", default="/scratch/m000204-pm06b/joana/NeoVerse/models")
+    ap.add_argument("--model_path", default="/scratch/m000204-pm07b/joana/NeoVerse/models")
     ap.add_argument("--reconstructor_path",
-                    default="/scratch/m000204-pm06b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
+                    default="/scratch/m000204-pm07b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
     ap.add_argument("--goal_frame", type=int, default=30)
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--obs_cache", default=None,
@@ -67,7 +67,7 @@ def main():
                          "for BC ahead of --live training: demo obs and training "
                          "obs must come from the same source)")
     ap.add_argument("--live_ckpt",
-                    default="/scratch/m000204-pm06b/joana/runs/train_semantic_v10/checkpoint-epoch-30.safetensors")
+                    default="/scratch/m000204-pm07b/joana/runs/train_semantic_v10/checkpoint-epoch-30.safetensors")
     args = ap.parse_args()
 
     cfg = CalibratedBackendConfig(

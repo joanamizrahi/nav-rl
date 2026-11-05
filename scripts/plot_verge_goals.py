@@ -8,7 +8,7 @@ Pavement goals drawn in the same window and cone are shown as plain stars:
 no verge, no circle -- the rule never fires for them.
 
     python scripts/plot_verge_goals.py --scenes gnd_AU_180 gnd_AUd210 gnd_AUw210 gnd_AUw360 gnd_AUw330 \
-        --out_dir /scratch/m000204-pm06b/joana/outputs/verge_goals
+        --out_dir /scratch/m000204-pm07b/joana/outputs/verge_goals
 """
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ def env_methods():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scenes", nargs="+", required=True)
-    ap.add_argument("--clouds_dir", default="/scratch/m000204-pm06b/joana/outputs/scene_clouds/clouds")
+    ap.add_argument("--clouds_dir", default="/scratch/m000204-pm07b/joana/outputs/scene_clouds/clouds")
     ap.add_argument("--trav", default="config/traversability_v14_walkway.yaml")
     ap.add_argument("--frames", default="15,30,45,60", help="spawn frames to draw from")
     ap.add_argument("--per_frame", type=int, default=6)

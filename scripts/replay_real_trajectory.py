@@ -12,10 +12,10 @@ the real path should be consistently favorable.
 Usage (Marlowe, GPU):
     python scripts/replay_real_trajectory.py \
         --scene rugd_trail_00 \
-        --clips_dir /scratch/m000204-pm06b/joana/data/rugd_clips \
-        --poses_dir /scratch/m000204-pm06b/joana/outputs/poses \
-        --labels_dir /scratch/m000204-pm06b/joana/NeoVerse/outputs/sam3_labels \
-        --out /scratch/m000204-pm06b/joana/outputs/replay_trail00.mp4
+        --clips_dir /scratch/m000204-pm07b/joana/data/rugd_clips \
+        --poses_dir /scratch/m000204-pm07b/joana/outputs/poses \
+        --labels_dir /scratch/m000204-pm07b/joana/NeoVerse/outputs/sam3_labels \
+        --out /scratch/m000204-pm07b/joana/outputs/replay_trail00.mp4
 """
 from __future__ import annotations
 
@@ -44,9 +44,9 @@ def main():
     ap.add_argument("--clips_dir", required=True)
     ap.add_argument("--poses_dir", required=True)
     ap.add_argument("--labels_dir", required=True)
-    ap.add_argument("--model_path", default="/scratch/m000204-pm06b/joana/NeoVerse/models")
+    ap.add_argument("--model_path", default="/scratch/m000204-pm07b/joana/NeoVerse/models")
     ap.add_argument("--reconstructor_path",
-                    default="/scratch/m000204-pm06b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
+                    default="/scratch/m000204-pm07b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--look_ahead_dist", type=float, default=2.0)
     ap.add_argument("--stride", type=int, default=1, help="replay every Nth recorded pose")

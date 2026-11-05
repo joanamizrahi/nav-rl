@@ -138,11 +138,11 @@ def main():
     ap.add_argument("--clips_dir", required=True)
     ap.add_argument("--poses_dir", required=True)
     ap.add_argument("--labels_dir", required=True)
-    ap.add_argument("--model_path", default="/scratch/m000204-pm06b/joana/NeoVerse/models")
+    ap.add_argument("--model_path", default="/scratch/m000204-pm07b/joana/NeoVerse/models")
     ap.add_argument("--reconstructor_path",
-                    default="/scratch/m000204-pm06b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
+                    default="/scratch/m000204-pm07b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
     ap.add_argument("--out_dir", type=Path,
-                    default=Path("/scratch/m000204-pm06b/joana/outputs/probe"))
+                    default=Path("/scratch/m000204-pm07b/joana/outputs/probe"))
     ap.add_argument("--diffuse", action="store_true",
                     help="stage 2: paired raster/diffused renders at S2_POSES")
     args = ap.parse_args()

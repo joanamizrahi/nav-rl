@@ -41,7 +41,7 @@ def main():
     ap.add_argument("runs", nargs="+", help="label=/path/to/metrics.json")
     ap.add_argument("--scene", required=True)
     ap.add_argument("--clouds_dir",
-                    default="/scratch/m000204-pm06b/joana/outputs/scene_clouds/clouds")
+                    default="/scratch/m000204-pm07b/joana/outputs/scene_clouds/clouds")
     ap.add_argument("--z_max", type=float, default=0.15)
     ap.add_argument("--crash_frac", type=float, default=0.35)
     ap.add_argument("--goal_xy", default="",

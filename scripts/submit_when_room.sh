@@ -4,7 +4,7 @@
 #   nohup bash scripts/submit_when_room.sh <log> "<env knobs>" <trainjob> <ckpt> <scene> [scene ...] &
 # Every line of <log> says what was submitted; "LIMIT" lines are retried every 5 min.
 LOG=$1; KNOBS=$2; JOB=$3; CKPT=$4; shift 4
-cd /scratch/m000204-pm06b/joana/nav-rl
+cd /scratch/m000204-pm07b/joana/nav-rl
 CK=(); [ -n "$CKPT" ] && [ "$CKPT" != "latest" ] && CK=(--ckpt "$CKPT")   # "latest" = newest checkpoint at submit time
 for S in "$@"; do
     while true; do

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=eval-policy
-#SBATCH --account=marlowe-m000204-pm06b
+#SBATCH --account=marlowe-m000204-pm07b
 #SBATCH --partition=batch
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
@@ -11,8 +11,8 @@
 # videos but no metrics -- while its BLIND partner, which happened to load
 # faster, completed. A pair where only one half survives is worse than no pair.
 #SBATCH --time=2:00:00
-#SBATCH --output=/scratch/m000204-pm06b/joana/slurm-eval-policy-%j.out
-#SBATCH --error=/scratch/m000204-pm06b/joana/slurm-eval-policy-%j.err
+#SBATCH --output=/scratch/m000204-pm07b/joana/slurm-eval-policy-%j.out
+#SBATCH --error=/scratch/m000204-pm07b/joana/slurm-eval-policy-%j.err
 #SBATCH --exclude=n04,n13,n17,n18,n24
 set -euo pipefail
 # PORTABLE (2026-09-08): the same launcher must run on Marlowe (module
@@ -25,7 +25,7 @@ fi
 
 export PYTHONNOUSERSITE=1
 hash -r
-cd /scratch/m000204-pm06b/joana/nav-rl
+cd /scratch/m000204-pm07b/joana/nav-rl
 CKPT=${CKPT:?set CKPT=/path/to/checkpoint.zip via --export=CKPT=...}
 # 2026-09-03: jobs 464831/464832 ran the cloud RASTERIZER instead of the world
 # model because the launch was `env $EV ...` from a shell where EV was empty
@@ -296,11 +296,11 @@ if [ -n "${GOAL_FRAME:-}" ] && [ -z "${SPAWN_MAX:-}" ] && [ -z "${SPAWNMAX:-}" ]
     echo "         (pass SPAWN_MAX=$GOAL_FRAME deliberately if you really want U-turns in the test)"
     exit 1
 fi
-_CLIP="${CLIPS_DIR:-/scratch/m000204-pm06b/joana/data/rugd_clips}/${SCENE}.mp4"
+_CLIP="${CLIPS_DIR:-/scratch/m000204-pm07b/joana/data/rugd_clips}/${SCENE}.mp4"
 if [ ! -f "$_CLIP" ]; then
     echo "REFUSED: no clip at $_CLIP"
-    echo "         campus scenes need CLIPS_DIR=/scratch/m000204-pm06b/joana/data/campus_clips"
-    _alt=/scratch/m000204-pm06b/joana/data/campus_clips/${SCENE}.mp4
+    echo "         campus scenes need CLIPS_DIR=/scratch/m000204-pm07b/joana/data/campus_clips"
+    _alt=/scratch/m000204-pm07b/joana/data/campus_clips/${SCENE}.mp4
     [ -f "$_alt" ] && echo "         (found it at $_alt)"
     exit 1
 fi
@@ -309,12 +309,12 @@ if [ "$SCENE" != "rugd_trail_00" ]; then
 fi
 # Cached-obs policies must be evaluated on the SAME cache they trained on.
 #   OBS_CACHE=ribbon_cache | ribbon_cache_spin ...   NOGATE=1 for ungated runs
-LABELS_DIR=/scratch/m000204-pm06b/joana/NeoVerse/outputs/sam3_labels
+LABELS_DIR=/scratch/m000204-pm07b/joana/NeoVerse/outputs/sam3_labels
 if [[ "${OBS_CACHE:-}" != "" ]]; then
-    CACHE_PATHS=$(echo "$OBS_CACHE" | sed 's#[^,]*#/scratch/m000204-pm06b/joana/outputs/&#g')
+    CACHE_PATHS=$(echo "$OBS_CACHE" | sed 's#[^,]*#/scratch/m000204-pm07b/joana/outputs/&#g')
     EXTRA_ARGS+=(--obs_cache "${CACHE_PATHS}"
                  --trav_path config/traversability_v14.yaml)
-    LABELS_DIR=/scratch/m000204-pm06b/joana/NeoVerse/outputs/sam3_labels_v14
+    LABELS_DIR=/scratch/m000204-pm07b/joana/NeoVerse/outputs/sam3_labels_v14
     if [[ "$OBS_CACHE" == *,* ]]; then
         OUT_SUFFIX="${OUT_SUFFIX}_hybrid"
     else
@@ -356,7 +356,7 @@ if [[ "${LIVE:-0}" == "1" ]]; then
     if [[ -n "${LIVECKPT:-}" ]]; then
         EXTRA_ARGS+=(--live_ckpt "$LIVECKPT")
     fi
-    LABELS_DIR=/scratch/m000204-pm06b/joana/NeoVerse/outputs/sam3_labels_v14
+    LABELS_DIR=/scratch/m000204-pm07b/joana/NeoVerse/outputs/sam3_labels_v14
     OUT_SUFFIX="${OUT_SUFFIX}_live"
 fi
 if [[ "${VIDEOS:-}" != "" ]]; then EXTRA_ARGS+=(--videos "$VIDEOS"); fi
@@ -364,14 +364,14 @@ echo "==> eval: $RUN_NAME / $(basename "$CKPT") scene=$SCENE spawn_max=${SPAWN_M
 # Eval dir names hit the 255-char limit on 2026-09-04 (blind half of the T2
 # rerun, 467571): keep the head readable, hash the tail. Same rule as the
 # training launcher; the full knob list is in the .out anyway.
-OUT_DIR=/scratch/m000204-pm06b/joana/outputs/eval_${RUN_SHORT}_$(basename "$CKPT" .zip)${OUT_SUFFIX}
+OUT_DIR=/scratch/m000204-pm07b/joana/outputs/eval_${RUN_SHORT}_$(basename "$CKPT" .zip)${OUT_SUFFIX}
 # EVALTAG (2026-09-19, Joana: "the folders are not organized"): with EVALTAG=A_corners the
 # eval lands in outputs/evals/<EVALTAG>/<scene>_<checkpoint>[_goalNN|_gfrA-B]/ instead of one
 # long name among hundreds; the training-run knobs are still recorded in metrics.json.
 if [ -n "${EVALTAG:-}" ]; then
     _ck=$(basename "$CKPT" .zip | sed 's/ppo_//; s/_steps//')
     _g="${GOAL_FRAME:+_goal${GOAL_FRAME}}${GOALFRAMERANGE:+_gfr${GOALFRAMERANGE/,/-}}"
-    OUT_DIR=/scratch/m000204-pm06b/joana/outputs/evals/${EVALTAG}/${SCENE}_${_ck}${_g}
+    OUT_DIR=/scratch/m000204-pm07b/joana/outputs/evals/${EVALTAG}/${SCENE}_${_ck}${_g}
     mkdir -p "$(dirname "$OUT_DIR")"
 fi
 _base=$(basename "$OUT_DIR")
@@ -384,8 +384,8 @@ echo "==> eval dir: $OUT_DIR"
 python scripts/eval_policy.py \
     --checkpoint "$CKPT" \
     --scene "$SCENE" --episodes "${EPISODES:-20}" \
-    --clips_dir "${CLIPS_DIR:-/scratch/m000204-pm06b/joana/data/rugd_clips}" \
-    --poses_dir /scratch/m000204-pm06b/joana/outputs/poses \
+    --clips_dir "${CLIPS_DIR:-/scratch/m000204-pm07b/joana/data/rugd_clips}" \
+    --poses_dir /scratch/m000204-pm07b/joana/outputs/poses \
     --labels_dir $LABELS_DIR \
     --out_dir "$OUT_DIR" \
     "${EXTRA_ARGS[@]}"

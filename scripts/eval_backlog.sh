@@ -12,8 +12,8 @@ set -uo pipefail
 BACKLOG=${1:?usage: eval_backlog.sh <cells file>}
 EVERY=${EVERY:-240}                 # seconds between passes
 MAXPASS=${MAXPASS:-180}             # give up after this many passes (12 h at 240 s)
-SEM=${SEM:-/scratch/m000204-pm06b/joana/runs/train_semantic_v35b_p6_ppl5/checkpoint-epoch-3.safetensors}
-OUTROOT=/scratch/m000204-pm06b/joana/outputs
+SEM=${SEM:-/scratch/m000204-pm07b/joana/runs/train_semantic_v35b_p6_ppl5/checkpoint-epoch-3.safetensors}
+OUTROOT=/scratch/m000204-pm07b/joana/outputs
 cd "$(dirname "$0")/.."
 
 for ((pass=1; pass<=MAXPASS; pass++)); do
@@ -28,7 +28,7 @@ for ((pass=1; pass<=MAXPASS; pass++)); do
         [ -f "$C" ] || { echo "  skip $J (no checkpoint)"; continue; }
         unset GOAL_FRAME GOALFRAMERANGE          # one scene's goal must not leak into the next
         export LIVE=1 LIVECKPT="$SEM" CKPT="$C" SCENE="$S" EPISODES="${EPISODES:-8}" \
-               CLIPS_DIR=/scratch/m000204-pm06b/joana/data/campus_clips \
+               CLIPS_DIR=/scratch/m000204-pm07b/joana/data/campus_clips \
                MAXSTEPSPERM="${MAXSTEPSPERM:-16}" MAXSTEPSBASE="${MAXSTEPSBASE:-40}"
         eval "export $G"
         if id=$(sbatch --parsable --export=ALL scripts/slurm/eval_policy.sh 2>/dev/null); then

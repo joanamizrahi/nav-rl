@@ -10,7 +10,7 @@ measured (2026-09-23, Joana: "might not get past the bend either").
 import argparse, math, sys
 import numpy as np
 
-POSES = "/scratch/m000204-pm06b/joana/outputs/poses/{}_poses.npz"
+POSES = "/scratch/m000204-pm07b/joana/outputs/poses/{}_poses.npz"
 
 
 def main():

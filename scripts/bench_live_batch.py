@@ -43,10 +43,10 @@ def main():
     ap.add_argument("--poses_dir", required=True)
     ap.add_argument("--labels_dir", required=True)
     ap.add_argument("--live_ckpt",
-                    default="/scratch/m000204-pm06b/joana/runs/train_semantic_v10/checkpoint-epoch-30.safetensors")
-    ap.add_argument("--model_path", default="/scratch/m000204-pm06b/joana/NeoVerse/models")
+                    default="/scratch/m000204-pm07b/joana/runs/train_semantic_v10/checkpoint-epoch-30.safetensors")
+    ap.add_argument("--model_path", default="/scratch/m000204-pm07b/joana/NeoVerse/models")
     ap.add_argument("--reconstructor_path",
-                    default="/scratch/m000204-pm06b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
+                    default="/scratch/m000204-pm07b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
     ap.add_argument("--batches", default="1,2,4,8")
     ap.add_argument("--frames", type=int, default=5)
     ap.add_argument("--repeats", type=int, default=3)

@@ -79,7 +79,7 @@ export SPAWNFRAMES=$(TRAIN="$SCENES_LIST" python - <<'PY'
 import json, os
 out = []
 for s in os.environ["TRAIN"].split():
-    fl = set(json.load(open(f"/scratch/m000204-pm06b/joana/outputs/pose_vs_odom_kprior/{s}_pose_vs_odom.json"))["flagged_frames"])
+    fl = set(json.load(open(f"/scratch/m000204-pm07b/joana/outputs/pose_vs_odom_kprior/{s}_pose_vs_odom.json"))["flagged_frames"])
     out.append(f"{s}:{','.join(str(f) for f in range(5, 61) if f not in fl and (f-1) not in fl and (f+1) not in fl)}")
 print(";".join(out))
 PY

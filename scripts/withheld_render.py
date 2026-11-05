@@ -57,9 +57,9 @@ def main():
     ap.add_argument("--withheld", required=True, type=Path, help="*_withheld.json from make_withheld_clips")
     ap.add_argument("--clips_dir", required=True); ap.add_argument("--poses_dir", required=True)
     ap.add_argument("--labels_dir", required=True)
-    ap.add_argument("--model_path", default="/scratch/m000204-pm06b/joana/NeoVerse/models")
+    ap.add_argument("--model_path", default="/scratch/m000204-pm07b/joana/NeoVerse/models")
     ap.add_argument("--reconstructor_path",
-                    default="/scratch/m000204-pm06b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
+                    default="/scratch/m000204-pm07b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
     ap.add_argument("--live_ckpt", required=True)
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--render_window", type=int, default=0)

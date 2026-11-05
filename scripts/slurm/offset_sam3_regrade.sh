@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=offset-sam3
-#SBATCH --account=marlowe-m000204-pm06b
+#SBATCH --account=marlowe-m000204-pm07b
 #SBATCH --partition=batch
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=02:00:00
-#SBATCH --output=/scratch/m000204-pm06b/joana/slurm-offset-sam3-%j.out
-#SBATCH --error=/scratch/m000204-pm06b/joana/slurm-offset-sam3-%j.err
+#SBATCH --output=/scratch/m000204-pm07b/joana/slurm-offset-sam3-%j.out
+#SBATCH --error=/scratch/m000204-pm07b/joana/slurm-offset-sam3-%j.err
 #SBATCH --exclude=n04,n13,n17,n18,n24
 # Re-run SAM3 for ONE offset-sweep root and regrade it (2026-09-27).
 # Why: offset_sweep.sh keys its SAM3 output by scene name only
@@ -18,7 +18,7 @@
 # GENERATED frames and, new, on the RASTER images too, copies both npz files
 # into the sweep folder next to the labels they describe, and regrades.
 #
-#   SWEEP=/scratch/m000204-pm06b/joana/outputs/offsets_far_v35b SCENES="quad1_01 quad2_00 sequoia1_10" \
+#   SWEEP=/scratch/m000204-pm07b/joana/outputs/offsets_far_v35b SCENES="quad1_01 quad2_00 sequoia1_10" \
 #       sbatch scripts/slurm/offset_sam3_regrade.sh
 set -uo pipefail
 if command -v module >/dev/null 2>&1; then
@@ -28,7 +28,7 @@ fi
 export PYTHONNOUSERSITE=1
 NEO_ENV=/users/jmizrahi/.conda/envs/neoverse/bin
 SAM_ENV=/users/jmizrahi/.conda/envs/sam3/bin
-S=/scratch/m000204-pm06b/joana
+S=/scratch/m000204-pm07b/joana
 : "${SWEEP:?set SWEEP=<offset sweep root dir>}"
 : "${SCENES:?set SCENES=\"s1 s2 ...\"}"
 SEMPAL=${SEMPAL:-6}

@@ -15,7 +15,7 @@ import argparse
 import re
 from pathlib import Path
 
-LOG_DIR = Path("/scratch/m000204-pm06b/joana")
+LOG_DIR = Path("/scratch/m000204-pm07b/joana")
 ROW = re.compile(r"^\|\s+([A-Za-z0-9_/]+)\s+\|\s+([-+0-9.e]+|nan|inf)\s+\|")
 
 

@@ -28,7 +28,7 @@ COL = {2: "#bde0b0", 3: "#74c476", 6: "#bdbdbd", 7: "#9e9ac8", 8: "#80cdc1", 9: 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scenes", nargs="+", required=True)
-    ap.add_argument("--clouds_dir", default="/scratch/m000204-pm06b/joana/outputs/scene_clouds/clouds")
+    ap.add_argument("--clouds_dir", default="/scratch/m000204-pm07b/joana/outputs/scene_clouds/clouds")
     ap.add_argument("--trav", default="config/traversability_v14_walkway.yaml")
     ap.add_argument("--collision_threshold", type=float, default=0.1)
     ap.add_argument("--res", type=float, default=0.1)
@@ -38,7 +38,7 @@ def main():
     ap.add_argument("--walk", type=float, default=0.4, help="half-width of the walkable corridor along the recorded walk")
     ap.add_argument("--inflate_classes", default="", help="comma list of class ids that inflate; empty = every non-traversable class")
     ap.add_argument("--ignore", default="", help="classes that do not vote, e.g. 12,13 for person, vehicle")
-    ap.add_argument("--out_dir", default="/scratch/m000204-pm06b/joana/outputs/scene_maps")
+    ap.add_argument("--out_dir", default="/scratch/m000204-pm07b/joana/outputs/scene_maps")
     ap.add_argument("--suffix", default="", help="appended to the file names, e.g. filled")
     args = ap.parse_args()
     Path(args.out_dir).mkdir(parents=True, exist_ok=True)

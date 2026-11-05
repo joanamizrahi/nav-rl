@@ -9,8 +9,8 @@
 #
 set -euo pipefail
 ROOT=/workspace/joana
-mkdir -p "$ROOT" /scratch/m000204-pm06b
-[ -e /scratch/m000204-pm06b/joana ] || ln -s "$ROOT" /scratch/m000204-pm06b/joana
+mkdir -p "$ROOT" /scratch/m000204-pm07b
+[ -e /scratch/m000204-pm07b/joana ] || ln -s "$ROOT" /scratch/m000204-pm07b/joana
 cd "$ROOT"
 
 echo "=== 1/5 repositories"

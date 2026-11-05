@@ -9,7 +9,7 @@ The threshold should sit just below the on-trajectory (offset 0) 10th percentile
 so faithful frames are never charged and drift is (2026-09-25).
 
     /users/jmizrahi/.conda/envs/neoverse/bin/python scripts/calibrate_rgb_align.py \\
-        /scratch/m000204-pm06b/joana/outputs/offsets_xfar_v35b
+        /scratch/m000204-pm07b/joana/outputs/offsets_xfar_v35b
 """
 import ast, csv, os, sys, textwrap, pathlib, collections
 import numpy as np

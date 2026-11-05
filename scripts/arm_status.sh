@@ -5,7 +5,7 @@
 #
 #   bash scripts/arm_status.sh
 set -uo pipefail
-OUT=/scratch/m000204-pm06b/joana/outputs
+OUT=/scratch/m000204-pm07b/joana/outputs
 cd "$(dirname "$0")/.."
 
 name_of () {   # training job id -> arm name
@@ -25,7 +25,7 @@ name_of () {   # training job id -> arm name
 # Which parents already HAVE a continuation. Read from the launch lines of every
 # job, not from a hardcoded list -- the list went stale within a day and reported
 # MISSING for four arms that were already continued (2026-09-24).
-PARENTS=$(grep -ho -- "--warmstart [^ ]*" /scratch/m000204-pm06b/joana/slurm-ppo-real-*.out 2>/dev/null \
+PARENTS=$(grep -ho -- "--warmstart [^ ]*" /scratch/m000204-pm07b/joana/slurm-ppo-real-*.out 2>/dev/null \
           | grep -o "_j[0-9]\+" | tr -d '_j' | sort -u)
 covered () {
   echo "$PARENTS" | grep -qx "$1" && echo yes || echo no

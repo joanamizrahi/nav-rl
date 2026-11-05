@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=check-rew-many
-#SBATCH --account=marlowe-m000204-pm06b
+#SBATCH --account=marlowe-m000204-pm07b
 #SBATCH --partition=batch
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=64G
 #SBATCH --time=03:00:00
-#SBATCH --output=/scratch/m000204-pm06b/joana/slurm-check-rew-many-%j.out
-#SBATCH --error=/scratch/m000204-pm06b/joana/slurm-check-rew-many-%j.err
+#SBATCH --output=/scratch/m000204-pm07b/joana/slurm-check-rew-many-%j.out
+#SBATCH --error=/scratch/m000204-pm07b/joana/slurm-check-rew-many-%j.err
 #SBATCH --exclude=n04,n13,n17,n18,n24
 # check_rewards.py over a LIST of scenes in one job (2026-09-15, campus scenes):
 # the same python call as check_rewards.sh, plus --clips_dir so it reads the
@@ -31,12 +31,12 @@ fi
 [ -d /users/jmizrahi/.conda/envs/neoverse/bin ] && export PATH=/users/jmizrahi/.conda/envs/neoverse/bin:$PATH
 export PYTHONNOUSERSITE=1
 hash -r
-cd /scratch/m000204-pm06b/joana/nav-rl
+cd /scratch/m000204-pm07b/joana/nav-rl
 
 : "${SCENES:?set SCENES=\"s1 s2 ...\"}"
-CLIPS_DIR=${CLIPS_DIR:-/scratch/m000204-pm06b/joana/data/campus_clips}
-LIVECKPT=${LIVECKPT:-/scratch/m000204-pm06b/joana/runs/train_semantic_v26_campus/checkpoint-epoch-10.safetensors}
-OUTROOT=${OUTDIR:-/scratch/m000204-pm06b/joana/outputs/check_rew_campus}
+CLIPS_DIR=${CLIPS_DIR:-/scratch/m000204-pm07b/joana/data/campus_clips}
+LIVECKPT=${LIVECKPT:-/scratch/m000204-pm07b/joana/runs/train_semantic_v26_campus/checkpoint-epoch-10.safetensors}
+OUTROOT=${OUTDIR:-/scratch/m000204-pm07b/joana/outputs/check_rew_campus}
 mkdir -p "$OUTROOT"
 nvidia-smi -L || true
 

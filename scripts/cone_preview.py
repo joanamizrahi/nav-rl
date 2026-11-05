@@ -32,7 +32,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scenes", nargs="+", required=True)
     ap.add_argument("--poses_dir",
-                    default="/scratch/m000204-pm06b/joana/outputs/poses")
+                    default="/scratch/m000204-pm07b/joana/outputs/poses")
     ap.add_argument("--cone_deg", type=float, default=80.0)
     ap.add_argument("--dist_range", default="5,10")
     ap.add_argument("--every", type=int, default=10,

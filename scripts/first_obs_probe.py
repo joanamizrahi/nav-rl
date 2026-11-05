@@ -38,10 +38,10 @@ def main():
     ap.add_argument("--poses_dir", required=True)
     ap.add_argument("--labels_dir", required=True)
     ap.add_argument("--live_ckpt",
-                    default="/scratch/m000204-pm06b/joana/runs/train_semantic_v10/checkpoint-epoch-30.safetensors")
-    ap.add_argument("--model_path", default="/scratch/m000204-pm06b/joana/NeoVerse/models")
+                    default="/scratch/m000204-pm07b/joana/runs/train_semantic_v10/checkpoint-epoch-30.safetensors")
+    ap.add_argument("--model_path", default="/scratch/m000204-pm07b/joana/NeoVerse/models")
     ap.add_argument("--reconstructor_path",
-                    default="/scratch/m000204-pm06b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
+                    default="/scratch/m000204-pm07b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
     ap.add_argument("--height", type=int, default=224)
     ap.add_argument("--width", type=int, default=336)
     ap.add_argument("--num_steps", type=int, default=4)

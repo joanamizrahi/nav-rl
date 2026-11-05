@@ -29,7 +29,7 @@ def interesting(k: str) -> bool:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--root", default="/scratch/m000204-pm06b/joana")
+    ap.add_argument("--root", default="/scratch/m000204-pm07b/joana")
     ap.add_argument("--since", default="2026-09-02 21:00",
                     help="only configs written after this (find -newermt)")
     args = ap.parse_args()

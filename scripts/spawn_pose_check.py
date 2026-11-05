@@ -23,7 +23,7 @@ import numpy as np
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scenes", nargs="+", required=True)
-    ap.add_argument("--poses_dir", default="/scratch/m000204-pm06b/joana/outputs/poses")
+    ap.add_argument("--poses_dir", default="/scratch/m000204-pm07b/joana/outputs/poses")
     ap.add_argument("--flag_deg", type=float, default=30.0)
     ap.add_argument("--min_step_m", type=float, default=0.05, help="frames moving less than this are skipped (standing)")
     ap.add_argument("--frames", default="", help="comma list of spawn frames to print in detail (empty = flagged only)")

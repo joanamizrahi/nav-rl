@@ -32,8 +32,8 @@ def main():
     ap.add_argument("--scene", required=True)
     ap.add_argument("--class_name", default="grass")
     ap.add_argument("--clouds_dir",
-                    default="/scratch/m000204-pm06b/joana/outputs/scene_clouds/clouds")
-    ap.add_argument("--poses_dir", default="/scratch/m000204-pm06b/joana/outputs/poses")
+                    default="/scratch/m000204-pm07b/joana/outputs/scene_clouds/clouds")
+    ap.add_argument("--poses_dir", default="/scratch/m000204-pm07b/joana/outputs/poses")
     ap.add_argument("--z_min", type=float, default=-0.5,
                     help="ground plane by default; use 0.15 for body-height obstacles")
     ap.add_argument("--z_max", type=float, default=0.15)

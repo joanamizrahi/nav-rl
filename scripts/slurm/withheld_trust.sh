@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=withheld-trust
-#SBATCH --account=marlowe-m000204-pm06b
+#SBATCH --account=marlowe-m000204-pm07b
 #SBATCH --partition=batch
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=96G
 #SBATCH --time=04:00:00
-#SBATCH --output=/scratch/m000204-pm06b/joana/slurm-withheld-trust-%j.out
-#SBATCH --error=/scratch/m000204-pm06b/joana/slurm-withheld-trust-%j.err
+#SBATCH --output=/scratch/m000204-pm07b/joana/slurm-withheld-trust-%j.out
+#SBATCH --error=/scratch/m000204-pm07b/joana/slurm-withheld-trust-%j.err
 #SBATCH --exclude=n04,n13,n17,n18,n24
 # TRUST RANGE, end to end (2026-09-16). For each scene: hold frames out, rebuild
 # the scene WITHOUT them, render at the withheld poses, grade the generated
@@ -29,10 +29,10 @@ fi
 [ -d /users/jmizrahi/.conda/envs/neoverse/bin ] && export PATH=/users/jmizrahi/.conda/envs/neoverse/bin:$PATH
 export PYTHONNOUSERSITE=1
 hash -r
-cd /scratch/m000204-pm06b/joana/nav-rl
+cd /scratch/m000204-pm07b/joana/nav-rl
 
 : "${SCENES:?set SCENES=\"s1 s2 ...\"}"
-S=/scratch/m000204-pm06b/joana
+S=/scratch/m000204-pm07b/joana
 CLIPS=${CLIPS_DIR:-$S/data/campus_clips}
 LABELS=${LABELS_DIR:-$S/NeoVerse/outputs/sam3_labels_v14}
 WHDIR=${WHDIR:-$S/data/campus_withheld}

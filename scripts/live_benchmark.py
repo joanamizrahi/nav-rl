@@ -26,7 +26,7 @@ sys.path.insert(0, str(REPO_ROOT))
 NEOVERSE_ROOT = REPO_ROOT.parent / "NeoVerse"
 if NEOVERSE_ROOT.exists():
     sys.path.insert(0, str(NEOVERSE_ROOT))
-SCRATCH_NEOVERSE = Path("/scratch/m000204-pm06b/joana/NeoVerse")
+SCRATCH_NEOVERSE = Path("/scratch/m000204-pm07b/joana/NeoVerse")
 if SCRATCH_NEOVERSE.exists():
     sys.path.insert(0, str(SCRATCH_NEOVERSE))
 
@@ -78,9 +78,9 @@ def main():
     ap.add_argument("--clips_dir", required=True)
     ap.add_argument("--poses_dir", required=True)
     ap.add_argument("--labels_dir", required=True)
-    ap.add_argument("--model_path", default="/scratch/m000204-pm06b/joana/NeoVerse/models")
+    ap.add_argument("--model_path", default="/scratch/m000204-pm07b/joana/NeoVerse/models")
     ap.add_argument("--reconstructor_path",
-                    default="/scratch/m000204-pm06b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
+                    default="/scratch/m000204-pm07b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
     ap.add_argument("--frames", default="5,9,21")
     ap.add_argument("--resolutions", default="560x336")
     ap.add_argument("--steps", type=int, default=10)

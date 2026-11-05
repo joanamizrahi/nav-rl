@@ -70,7 +70,7 @@ def main():
     ap.add_argument("--blind", required=True)
     ap.add_argument("--scene", required=True)
     ap.add_argument("--clouds_dir",
-                    default="/scratch/m000204-pm06b/joana/outputs/scene_clouds/clouds")
+                    default="/scratch/m000204-pm07b/joana/outputs/scene_clouds/clouds")
     ap.add_argument("--out", default="blind_vs_sighted_paths.png")
     ap.add_argument("--episodes", type=int, default=20,
                     help="how many paired episodes to draw")

@@ -32,7 +32,7 @@ from pathlib import Path
 
 import numpy as np
 
-LOGDIR = Path("/scratch/m000204-pm06b/joana")
+LOGDIR = Path("/scratch/m000204-pm07b/joana")
 LEDGER = LOGDIR / "launch_ledger.log"
 
 SECTION = re.compile(r"^\|\s+(\w+)/\s+\|\s+\|\s*$")

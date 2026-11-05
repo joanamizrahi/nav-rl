@@ -28,7 +28,7 @@ import numpy as np
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
-CLOUDS = "/scratch/m000204-pm06b/joana/outputs/scene_clouds/clouds"
+CLOUDS = "/scratch/m000204-pm07b/joana/outputs/scene_clouds/clouds"
 # The table TRAINING and EVAL score with (configs/arms/_base_campus.env: TRAV=...walkway).
 # In it grass is 0.0 -- a collision -- while the plain v14 table gives grass 0.75. The
 # first overheads used v14 and drew every lawn as walkable, so the "grass corner" was

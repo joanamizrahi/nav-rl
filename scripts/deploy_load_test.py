@@ -10,6 +10,50 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 for p in (HERE, os.path.dirname(HERE)):
     if p not in sys.path: sys.path.insert(0, p)
 import numpy as np
+# Checkpoints trained under numpy 2.x pickle references to `numpy._core.*`;
+# Thor runs numpy 1.26 (ROS/cv2 pin), where that package is `numpy.core`.
+# Alias it so cloudpickle can resolve them. 2026-10-08.
+if not np.__version__.startswith("2"):
+    import importlib as _il, importlib.abc as _ilabc, importlib.util as _ilutil
+
+    class _NumpyCoreAlias(_ilabc.MetaPathFinder, _ilabc.Loader):
+        def find_spec(self, name, path=None, target=None):
+            if name == "numpy._core" or name.startswith("numpy._core."):
+                return _ilutil.spec_from_loader(name, self)
+            return None
+
+        def create_module(self, spec):
+            return _il.import_module("numpy.core" + spec.name[len("numpy._core"):])
+
+        def exec_module(self, module):
+            pass
+
+    sys.meta_path.insert(0, _NumpyCoreAlias())
+
+    # numpy 2.x also pickles a space's RNG differently: the BitGenerator is
+    # passed as a class (1.26 wants its name), its state as (state, seed_seq)
+    # (1.26 wants the dict), and the Generator as a BitGenerator instance.
+    import numpy.random._pickle as _nrp
+    _orig_bg_ctor = _nrp.__bit_generator_ctor
+    _bg_compat = {}
+
+    def _bg_ctor(bit_generator_name="MT19937"):
+        if not isinstance(bit_generator_name, type):
+            return _orig_bg_ctor(bit_generator_name)
+        cls = bit_generator_name
+        if cls not in _bg_compat:
+            def __setstate__(self, state):
+                self.state = state[0] if isinstance(state, tuple) else state
+            _bg_compat[cls] = type(cls.__name__, (cls,), {"__setstate__": __setstate__})
+        return _bg_compat[cls]()
+
+    def _gen_ctor(bit_generator_name="MT19937", bit_generator_ctor=_bg_ctor):
+        if isinstance(bit_generator_name, np.random.BitGenerator):
+            return np.random.Generator(bit_generator_name)
+        return np.random.Generator(bit_generator_ctor(bit_generator_name))
+
+    _nrp.__bit_generator_ctor = _bg_ctor
+    _nrp.__generator_ctor = _gen_ctor
 from stable_baselines3 import PPO
 runs = sys.argv[1:] or sorted(d for d in glob.glob(os.path.join(HERE, "*")) if os.path.isdir(os.path.join(d, "checkpoints")))
 ok = 0

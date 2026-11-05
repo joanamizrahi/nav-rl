@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=cache-gen
-#SBATCH --account=marlowe-m000204-pm06b
+#SBATCH --account=marlowe-m000204-pm07b
 #SBATCH --partition=batch
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=48G
 #SBATCH --time=04:00:00
-#SBATCH --output=/scratch/m000204-pm06b/joana/slurm-cache-gen-%j.out
-#SBATCH --error=/scratch/m000204-pm06b/joana/slurm-cache-gen-%j.err
+#SBATCH --output=/scratch/m000204-pm07b/joana/slurm-cache-gen-%j.out
+#SBATCH --error=/scratch/m000204-pm07b/joana/slurm-cache-gen-%j.err
 #SBATCH --exclude=n04,n13,n17,n18,n24
 
 # Ribbon-cache generation: renders sweeps (81-pose trajectory files from
@@ -34,18 +34,18 @@ SCENE=${SCENE:-rugd_trail_00}
 SWEEPS=${SWEEPS:?set SWEEPS=<a>-<b> or <a> via --export}
 RUN_NAME=${RUN_NAME:-train_semantic_v10}
 # TRAJ_TAG: read sweeps from ribbon_traj_<tag>/ (e.g. the spin grid).
-TRAJ_DIR=/scratch/m000204-pm06b/joana/outputs/ribbon_traj${TRAJ_TAG:+_$TRAJ_TAG}/${SCENE}
+TRAJ_DIR=/scratch/m000204-pm07b/joana/outputs/ribbon_traj${TRAJ_TAG:+_$TRAJ_TAG}/${SCENE}
 # CACHE_TAG: write to ribbon_cache_<tag>/ instead of the real cache — for
 # prompt/settings experiments that must not touch what training reads.
-CACHE_DIR=/scratch/m000204-pm06b/joana/outputs/ribbon_cache${CACHE_TAG:+_$CACHE_TAG}/${SCENE}
+CACHE_DIR=/scratch/m000204-pm07b/joana/outputs/ribbon_cache${CACHE_TAG:+_$CACHE_TAG}/${SCENE}
 # PROMPT: override the inpainting text prompt (2026-08-17: off-path sweeps
 # dream persistent objects — testing whether a scene-descriptive prompt tames
 # the hallucinations in low-alpha headings).
 PROMPT=${PROMPT:-}
-RUNS=/scratch/m000204-pm06b/joana/runs/${RUN_NAME}
+RUNS=/scratch/m000204-pm07b/joana/runs/${RUN_NAME}
 CKPT=$(ls -t "$RUNS"/checkpoint-epoch-*.safetensors 2>/dev/null | head -1 || true)
 
-cd /scratch/m000204-pm06b/joana/NeoVerse
+cd /scratch/m000204-pm07b/joana/NeoVerse
 echo "commit: $(git log --oneline -1)"
 [ -f "$TRAJ_DIR/manifest.json" ] || { echo "FATAL: no manifest at $TRAJ_DIR — run make_ribbon_trajectories.py first"; exit 1; }
 [ -f "$CKPT" ] || { echo "FATAL: no checkpoint under $RUNS"; exit 1; }
@@ -65,7 +65,7 @@ fi
 
 # CLIPS_DIR: source clip location (default RUGD; gnd_clips etc. for the new
 # datasets — their SAM3 v14 labels are keyed by the same scene name).
-CLIPS_DIR=${CLIPS_DIR:-/scratch/m000204-pm06b/joana/data/rugd_clips}
+CLIPS_DIR=${CLIPS_DIR:-/scratch/m000204-pm07b/joana/data/rugd_clips}
 # ONE python process for the whole range: the 30GB pipeline loads once and
 # every sweep in the range reuses it (was: one load PER sweep — half the cost
 # of the whole cache was model loading).
@@ -76,8 +76,8 @@ python inference_semantic.py "${EXTRA_ARGS[@]}" \
     --sweep_manifest "$TRAJ_DIR/manifest.json" \
     --sweeps "$SWEEPS" \
     --cache_out "$CACHE_DIR" \
-    --model_path /scratch/m000204-pm06b/joana/NeoVerse/models \
-    --reconstructor_path /scratch/m000204-pm06b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt \
+    --model_path /scratch/m000204-pm07b/joana/NeoVerse/models \
+    --reconstructor_path /scratch/m000204-pm07b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt \
     --semantic_expansion_version 2 --lora_rank 8 \
     --lora_target_modules "q,k,v,o,ffn.0,ffn.2" \
     --semantic_labels "$LABELS_NPZ" \

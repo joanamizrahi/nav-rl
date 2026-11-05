@@ -34,11 +34,11 @@ from PIL import Image
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--input_path", default="/scratch/m000204-pm06b/joana/data/rugd_clips/rugd_park-1_00.mp4")
+    ap.add_argument("--input_path", default="/scratch/m000204-pm07b/joana/data/rugd_clips/rugd_park-1_00.mp4")
     ap.add_argument("--output_dir", default="outputs/backend_test")
-    ap.add_argument("--model_path", default="/scratch/m000204-pm06b/joana/NeoVerse/models")
+    ap.add_argument("--model_path", default="/scratch/m000204-pm07b/joana/NeoVerse/models")
     ap.add_argument("--reconstructor_path",
-                    default="/scratch/m000204-pm06b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
+                    default="/scratch/m000204-pm07b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
     ap.add_argument("--render_mode", default="rasterizer_plus_diffusion",
                     choices=["rasterizer_plus_diffusion", "rasterizer_only"])
     ap.add_argument("--num_frames", type=int, default=81)

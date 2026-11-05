@@ -10,7 +10,7 @@
 #   bash scripts/check_run.sh 500937 500938 ...    # or with no args, every job
 #
 # WAIT means the job has not got that far yet, not that it failed.
-LOGDIR=${LOGDIR:-/scratch/m000204-pm06b/joana}
+LOGDIR=${LOGDIR:-/scratch/m000204-pm07b/joana}
 JOBS=${@:-$(squeue -u "$USER" -h -o "%i" 2>/dev/null)}
 [ -z "$JOBS" ] && { echo "no jobs"; exit 0; }
 

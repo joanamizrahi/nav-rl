@@ -7,9 +7,9 @@ generated RGB). All distances in REAL METERS via the extract_poses calibration.
 Usage (Marlowe, GPU):
     python scripts/train_ppo_real.py \
         --scene rugd_trail_00 \
-        --clips_dir /scratch/m000204-pm06b/joana/data/rugd_clips \
-        --poses_dir /scratch/m000204-pm06b/joana/outputs/poses \
-        --labels_dir /scratch/m000204-pm06b/joana/NeoVerse/outputs/sam3_labels \
+        --clips_dir /scratch/m000204-pm07b/joana/data/rugd_clips \
+        --poses_dir /scratch/m000204-pm07b/joana/outputs/poses \
+        --labels_dir /scratch/m000204-pm07b/joana/NeoVerse/outputs/sam3_labels \
         --total_steps 10000 \
         --output_dir outputs/ppo_real_trail00
 
@@ -1937,9 +1937,9 @@ def main():
     ap.add_argument("--clips_dir", required=True)
     ap.add_argument("--poses_dir", required=True)
     ap.add_argument("--labels_dir", required=True)
-    ap.add_argument("--model_path", default="/scratch/m000204-pm06b/joana/NeoVerse/models")
+    ap.add_argument("--model_path", default="/scratch/m000204-pm07b/joana/NeoVerse/models")
     ap.add_argument("--reconstructor_path",
-                    default="/scratch/m000204-pm06b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
+                    default="/scratch/m000204-pm07b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
     ap.add_argument("--total_steps", type=int, default=10_000)
     ap.add_argument("--max_steps", type=int, default=60)
     ap.add_argument("--spawn_max_frame", type=int, default=None,
@@ -1955,7 +1955,7 @@ def main():
                     help="live per-action diffusion observations (no cache): one "
                          "5-frame generation per env step at the exact pose")
     ap.add_argument("--live_ckpt",
-                    default="/scratch/m000204-pm06b/joana/runs/train_semantic_v10/checkpoint-epoch-30.safetensors",
+                    default="/scratch/m000204-pm07b/joana/runs/train_semantic_v10/checkpoint-epoch-30.safetensors",
                     help="semantic diffusion checkpoint the live backend serves")
     ap.add_argument("--live_frames", type=int, default=5,
                     help="frames per live call (4 history + current; 4k+1)")

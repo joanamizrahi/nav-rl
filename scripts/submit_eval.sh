@@ -22,8 +22,8 @@ while [ $# -gt 0 ]; do
 done
 [ -z "${SCENES// }" ] && SCENES="$EVAL_CORE"
 
-OUT=/scratch/m000204-pm06b/joana/outputs
-SEM=${LIVECKPT:-/scratch/m000204-pm06b/joana/runs/train_semantic_v35b_p6_ppl5/checkpoint-epoch-3.safetensors}
+OUT=/scratch/m000204-pm07b/joana/outputs
+SEM=${LIVECKPT:-/scratch/m000204-pm07b/joana/runs/train_semantic_v35b_p6_ppl5/checkpoint-epoch-3.safetensors}
 D=$(ls -d $OUT/*_j${JOB} 2>/dev/null | head -1) || true
 [ -n "${D:-}" ] || { echo "REFUSED: no run directory for job $JOB"; exit 1; }
 if [ -n "$CKPT_WANT" ]; then
@@ -52,7 +52,7 @@ for S in $SCENES; do
     [ -n "$REAL" ] && S_REAL="$REAL" || S_REAL="$S"
     # gnd clips do not live in campus_clips; a row may name its own directory
     CLIPSUB=$(awk '{for(i=4;i<=NF;i++) if ($i ~ /^CLIPS=/) {sub(/^CLIPS=/,"",$i); print $i; exit}}' <<< "$LINE")
-    CLIPDIR=/scratch/m000204-pm06b/joana/data/${CLIPSUB:-campus_clips}
+    CLIPDIR=/scratch/m000204-pm07b/joana/data/${CLIPSUB:-campus_clips}
     # the distance THIS test spans, measured; sizes the budget so every arm gets the
     # same one on a fixed-goal scene (2026-09-24, chunk5 timed out on its budget)
     TDIST=$(awk '{for(i=4;i<=NF;i++) if ($i ~ /^TESTDIST=/) {sub(/^TESTDIST=/,"",$i); print $i; exit}}' <<< "$LINE")

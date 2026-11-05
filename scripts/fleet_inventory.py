@@ -23,7 +23,7 @@ import subprocess
 import time
 from pathlib import Path
 
-OUTPUTS = "/scratch/m000204-pm06b/joana/outputs"
+OUTPUTS = "/scratch/m000204-pm07b/joana/outputs"
 
 # token -> (column, how to read it). Order matters: longest prefix first so
 # `_smax` is not eaten by `_sm`, `_sjy`/`_sjl` not eaten by `_s`, etc.
@@ -141,7 +141,7 @@ def running_dirs() -> dict:
         if len(bits) < 2 or "ppo" not in bits[1]:
             continue
         jid = bits[0]
-        log = Path(f"/scratch/m000204-pm06b/joana/slurm-ppo-real-{jid}.out")
+        log = Path(f"/scratch/m000204-pm07b/joana/slurm-ppo-real-{jid}.out")
         if not log.exists():
             continue
         for ln in log.read_text(errors="ignore").splitlines()[:400]:

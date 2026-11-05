@@ -127,7 +127,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scenes", nargs="+", default=list(TRAIN_SCENES))
     ap.add_argument("--clouds_dir",
-                    default="/scratch/m000204-pm06b/joana/outputs/scene_clouds/clouds")
+                    default="/scratch/m000204-pm07b/joana/outputs/scene_clouds/clouds")
     ap.add_argument("--trav_path", default="config/traversability_v14_walkway.yaml")
     ap.add_argument("--goal_dist_range", default="3,8",
                     help="matches --goal_dist_range in training (the 09-02 arms use 3,8)")

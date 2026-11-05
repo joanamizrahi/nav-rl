@@ -41,8 +41,8 @@ The geometry, step by step (conventions verified in src/env/real_backend.py):
 
 Usage (on Marlowe):
     python scripts/extract_poses.py \
-        --videos /scratch/m000204-pm06b/joana/data/rugd_clips/*.mp4 \
-        --output_dir /scratch/m000204-pm06b/joana/outputs/poses
+        --videos /scratch/m000204-pm07b/joana/data/rugd_clips/*.mp4 \
+        --output_dir /scratch/m000204-pm07b/joana/outputs/poses
 
 Then (on Mac, after scp):
     python scripts/validate_reward.py --video ... --labels ... \
@@ -369,7 +369,7 @@ def main():
                     help="one or more clip MP4s (shell glob ok)")
     ap.add_argument("--output_dir", required=True, type=Path)
     ap.add_argument("--reconstructor_path",
-                    default="/scratch/m000204-pm06b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
+                    default="/scratch/m000204-pm07b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
     ap.add_argument("--num_frames", type=int, default=81)
     ap.add_argument("--width", type=int, default=560)
     ap.add_argument("--height", type=int, default=336)

@@ -88,9 +88,9 @@ def main():
     ap.add_argument("--scene", required=True)
     ap.add_argument("--cloud", required=True)
     ap.add_argument("--poses_dir",
-                    default="/scratch/m000204-pm06b/joana/outputs/poses")
+                    default="/scratch/m000204-pm07b/joana/outputs/poses")
     ap.add_argument("--labels_dir",
-                    default="/scratch/m000204-pm06b/joana/NeoVerse/outputs/sam3_labels_v14")
+                    default="/scratch/m000204-pm07b/joana/NeoVerse/outputs/sam3_labels_v14")
     ap.add_argument("--cone_deg", type=float, default=50.0)
     ap.add_argument("--dist_range", default="5,10")
     ap.add_argument("--spawn_yaw_jitter", type=float, default=20.0)

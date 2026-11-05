@@ -30,7 +30,7 @@ BODY_L, BODY_W = 0.6, 0.3
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scenes", nargs="+", required=True)
-    ap.add_argument("--clouds_dir", default="/scratch/m000204-pm06b/joana/outputs/scene_clouds/clouds")
+    ap.add_argument("--clouds_dir", default="/scratch/m000204-pm07b/joana/outputs/scene_clouds/clouds")
     ap.add_argument("--trav", default="config/traversability_v14_walkway.yaml")
     ap.add_argument("--collision_threshold", type=float, default=0.1)
     ap.add_argument("--lo", type=int, default=15, help="first spawn frame (spawn_min_frame)")
