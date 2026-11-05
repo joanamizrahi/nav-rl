@@ -26,6 +26,8 @@ Then:  SAM3 on frames/ -> grade_offsets.py
         --sem_palette 6 --render_window 21 --coverage_window 21 --out out/offsets/quad2_01
 """
 from __future__ import annotations
+import os as _os
+_S = _os.environ.get("SCRATCH_ROOT", "/scratch/m000204-pm07b/joana")  # 2026-11-05: Cycle 7 scratch; override with SCRATCH_ROOT
 
 import argparse
 import math
@@ -48,9 +50,9 @@ def main():
     ap.add_argument("--scene", required=True)
     ap.add_argument("--clips_dir", required=True); ap.add_argument("--poses_dir", required=True)
     ap.add_argument("--labels_dir", required=True)
-    ap.add_argument("--model_path", default="/scratch/m000204-pm06b/joana/NeoVerse/models")
+    ap.add_argument("--model_path", default=_S + "/NeoVerse/models")
     ap.add_argument("--reconstructor_path",
-                    default="/scratch/m000204-pm06b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
+                    default=_S + "/NeoVerse/models/NeoVerse/reconstructor.ckpt")
     ap.add_argument("--live_ckpt", required=True)
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--render_window", type=int, default=21)
@@ -100,7 +102,7 @@ def main():
     print(f"[offsets] {args.scene}: {len(bases)} base poses x ({len(lats)} lateral + {len(yaws) - 1} yaw) "
           f"= {len(queries)} renders", flush=True)
 
-    args.out.mkdir(parents=True, exist_ok=True); (args.out / "frames").mkdir(exist_ok=True); (args.out / "raster").mkdir(exist_ok=True)
+    args.out.mkdir(parents=True, exist_ok=True); (args.out / "frames").mkdir(exist_ok=True); (args.out / "raster").mkdir(exist_ok=True); (args.out / "raster_depth").mkdir(exist_ok=True)
     preds, alphas, hints, gens, covs = [], [], [], [], []
     for qi, (b, kind, o, sgn) in enumerate(queries):
         yaw0 = float(yaw_rec[b]); x0, y0 = float(pos[b, 0]), float(pos[b, 1])
@@ -131,9 +133,20 @@ def main():
         pose_recon, t_idx = world._pose_nav_to_recon(pose)
         w2c_r, K1, ts1 = world._single_frame_inputs(sc, pose_recon, t_idx)
         with torch.no_grad():
-            _, _, a = raster.forward(world._render_gaussians(sc, t_idx), render_viewmats=[w2c_r], render_Ks=[K1],
+            _, d, a = raster.forward(world._render_gaussians(sc, t_idx), render_viewmats=[w2c_r], render_Ks=[K1],
                                      render_timestamps=[ts1], sh_degree=0, width=args.width, height=args.height)
         alpha = a[0, 0].float().cpu().numpy().squeeze(-1) if a.ndim == 5 else a[0, 0].float().cpu().numpy()
+        # 2026-11-05 (Fig. 3): the rasterized DEPTH at the same pose, the NeoVerse
+        # condition the figure shows next to colour and opacity. Saved as an 8-bit
+        # png normalised over the observed pixels (alpha > 0.5), holes black.
+        dep = d[0, 0].float().cpu().numpy().squeeze(-1) if d.ndim == 5 else d[0, 0].float().cpu().numpy()
+        _obs = alpha > 0.5
+        if _obs.any():
+            lo, hi = np.percentile(dep[_obs], 2), np.percentile(dep[_obs], 98)
+            d8 = np.clip((dep - lo) / max(hi - lo, 1e-6), 0, 1); d8 = (255 * (1.0 - d8)).astype(np.uint8); d8[~_obs] = 0
+        else:
+            d8 = np.zeros(dep.shape, np.uint8)
+        cv2.imwrite(str(args.out / "raster_depth" / f"q_{qi:04d}.png"), d8)
         # 2026-09-18 (Joana caught it): LiveDiffusedBackend._rasterize_labels
         # returns the GENERATED labels right after a render (that is how the
         # reward reads what the policy saw), so calling it here gave a copy of

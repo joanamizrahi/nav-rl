@@ -48,6 +48,8 @@ return mostly-holey output that the diffusion tries to inpaint. Quality
 degrades gracefully as the policy strays from the reconstructed volume.
 """
 from __future__ import annotations
+import os as _os
+_S = _os.environ.get("SCRATCH_ROOT", "/scratch/m000204-pm07b/joana")  # 2026-11-05: Cycle 7 scratch; override with SCRATCH_ROOT
 
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -197,8 +199,8 @@ class RealWorldBackendConfig:
     render_mode: str = "rasterizer_plus_diffusion"
 
     # Model paths
-    model_path: str = "/scratch/m000204-pm06b/joana/NeoVerse/models"
-    reconstructor_path: str = "/scratch/m000204-pm06b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt"
+    model_path: str = _S + "/NeoVerse/models"
+    reconstructor_path: str = _S + "/NeoVerse/models/NeoVerse/reconstructor.ckpt"
 
 
 # ---------------------------------------------------------------------------

@@ -6,6 +6,8 @@ torch on Mac to render label overlays. Values are (R, G, B) uint8 in [0, 255].
 LOCKSTEP: if NeoVerse's CLASS_COLORS changes, update this table too.
 """
 from __future__ import annotations
+import os as _os
+_S = _os.environ.get("SCRATCH_ROOT", "/scratch/m000204-pm07b/joana")  # 2026-11-05: Cycle 7 scratch; override with SCRATCH_ROOT
 
 import numpy as np
 
@@ -77,7 +79,7 @@ def display_palette(sem_palette: int = 4, strict: bool = False) -> np.ndarray:
         import sys
         from pathlib import Path
         for _nv in (Path(__file__).resolve().parents[2].parent / "NeoVerse",
-                    Path("/scratch/m000204-pm06b/joana/NeoVerse")):
+                    Path(_S + "/NeoVerse")):
             if _nv.exists() and str(_nv) not in sys.path:
                 sys.path.insert(0, str(_nv))
         from diffsynth.utils.class_taxonomy import v14_palette

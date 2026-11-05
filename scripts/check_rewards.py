@@ -37,6 +37,8 @@ test whether the gate also deletes obstacles that ARE observed):
     ... --goal_xy 1.57,-6.06 --spawn_frame 40
 """
 from __future__ import annotations
+import os as _os
+_S = _os.environ.get("SCRATCH_ROOT", "/scratch/m000204-pm07b/joana")  # 2026-11-05: Cycle 7 scratch; override with SCRATCH_ROOT
 
 import argparse
 from pathlib import Path
@@ -207,7 +209,7 @@ def render_replay(args):
     cell_nt = nt[iy, ix]
     m = json.load(open(args.replay_metrics))
     want = set(int(v) for v in str(args.replay_episodes).split(",") if v.strip())
-    od = Path(args.out_dir) if getattr(args, "out_dir", None) else Path("/scratch/m000204-pm06b/joana/outputs/check_rewards")
+    od = Path(args.out_dir) if getattr(args, "out_dir", None) else Path(_S + "/outputs/check_rewards")
     od.mkdir(parents=True, exist_ok=True)
     near_d = float(args.collision_look_ahead)
     print(f"=== REPLAY {args.replay_metrics} episodes {sorted(want)}", flush=True)
@@ -399,7 +401,7 @@ def sweep_coverage(args):
           import cv2
           from src.eval.palette import display_palette
           _pal = display_palette(args.sem_palette)
-          od = Path(args.out_dir) if getattr(args, "out_dir", None) else Path("/scratch/m000204-pm06b/joana/outputs/check_rewards") / f"covsweep_{args.scene}"
+          od = Path(args.out_dir) if getattr(args, "out_dir", None) else Path(_S + "/outputs/check_rewards") / f"covsweep_{args.scene}"
           od.mkdir(parents=True, exist_ok=True)
       print(f"=== COVERAGE SWEEP {args.scene}: frames {frames}, yaw offsets {yaws} deg", flush=True)
       print("frame  " + " ".join(f"{y:>+9.0f}" for y in yaws) + "   (mean alpha / near-ground alpha)", flush=True)
@@ -862,15 +864,15 @@ def alpha_histogram(vals, nbins=10):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scene", required=True)
-    ap.add_argument("--clips_dir", default="/scratch/m000204-pm06b/joana/data/rugd_clips")
-    ap.add_argument("--poses_dir", default="/scratch/m000204-pm06b/joana/outputs/poses")
+    ap.add_argument("--clips_dir", default=_S + "/data/rugd_clips")
+    ap.add_argument("--poses_dir", default=_S + "/outputs/poses")
     ap.add_argument("--labels_dir",
-                    default="/scratch/m000204-pm06b/joana/NeoVerse/outputs/sam3_labels_v14")
+                    default=_S + "/NeoVerse/outputs/sam3_labels_v14")
     ap.add_argument("--live_ckpt",
-                    default="/scratch/m000204-pm06b/joana/runs/train_semantic_v21/checkpoint-epoch-12.safetensors")
-    ap.add_argument("--model_path", default="/scratch/m000204-pm06b/joana/NeoVerse/models")
+                    default=_S + "/runs/train_semantic_v21/checkpoint-epoch-12.safetensors")
+    ap.add_argument("--model_path", default=_S + "/NeoVerse/models")
     ap.add_argument("--reconstructor_path",
-                    default="/scratch/m000204-pm06b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
+                    default=_S + "/NeoVerse/models/NeoVerse/reconstructor.ckpt")
     ap.add_argument("--trav_path", default="config/traversability_v14_walkway.yaml")
     ap.add_argument("--height", type=int, default=336)
     ap.add_argument("--width", type=int, default=560)
@@ -900,7 +902,7 @@ def main():
                          "the straight-walk goal (needs --clouds_dir)")
     ap.add_argument("--goal_support_min_frac", type=float, default=0.25)
     ap.add_argument("--clouds_dir",
-                    default="/scratch/m000204-pm06b/joana/outputs/scene_clouds/clouds")
+                    default=_S + "/outputs/scene_clouds/clouds")
     ap.add_argument("--coh_hard_tau", type=float, default=0.1,
                     help="coverage below this terminates the episode in "
                          "training (coherence_terminate_tau)")
@@ -973,7 +975,7 @@ def main():
     ap.add_argument("--out_dir", default="")
     ap.add_argument("--tag", default="")
     ap.add_argument("--out",
-                    default="/scratch/m000204-pm06b/joana/outputs/reward_check")
+                    default=_S + "/outputs/reward_check")
     args = ap.parse_args()
 
     taus = [float(v) for v in args.sweep.split(",")]

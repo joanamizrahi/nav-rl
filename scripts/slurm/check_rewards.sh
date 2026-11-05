@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=check-rew
-#SBATCH --account=marlowe-m000204-pm06b
+#SBATCH --account=marlowe-m000204-pm07b
 #SBATCH --partition=batch
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
@@ -24,8 +24,8 @@
 # (more than train's 48G), so if it starts failing on n06/n21/n30/n31, memory
 # is why and the exclusion goes back.
 #SBATCH --exclude=n04,n13,n17,n18,n24
-#SBATCH --output=/scratch/m000204-pm06b/joana/slurm-check-rew-%j.out
-#SBATCH --error=/scratch/m000204-pm06b/joana/slurm-check-rew-%j.err
+#SBATCH --output=/scratch/m000204-pm07b/joana/slurm-check-rew-%j.out
+#SBATCH --error=/scratch/m000204-pm07b/joana/slurm-check-rew-%j.err
 
 # Reward mechanism check: GATE / VOID / IMGVOID measured on real renders.
 # Renders ONCE, then sweeps the alpha-gate threshold over identical pixels.
@@ -50,9 +50,12 @@ fi
 
 export PYTHONNOUSERSITE=1
 hash -r
-cd /scratch/m000204-pm06b/joana/nav-rl
+S=${SCRATCH_ROOT:-/scratch/m000204-pm07b/joana}
+cd $S/nav-rl
 
 EXTRA=()
+# CLIPS_DIR / POSES_DIR / LABELS_DIR / CLOUDS_DIR (2026-11-05): campus scenes by default; the python defaults are the RUGD paths
+EXTRA+=(--clips_dir "${CLIPS_DIR:-$S/data/campus_clips}" --poses_dir "${POSES_DIR:-$S/outputs/poses}" --labels_dir "${LABELS_DIR:-$S/NeoVerse/outputs/sam3_labels_v14}" --clouds_dir "${CLOUDS_DIR:-$S/outputs/scene_clouds/clouds}")
 if [ -n "${GOALXY:-}" ]; then
     EXTRA+=(--goal_xy "${GOALXY}")
 fi
@@ -76,6 +79,8 @@ fi
 # reconstruction modes would otherwise overwrite each other).
 [ -n "${OUTDIR:-}" ] && EXTRA+=(--out_dir "${OUTDIR}" --out "${OUTDIR}")
 [ "${STATICSCENE:-0}" = "1" ] && EXTRA+=(--static_scene)
+# BOXMEM=5 BOXMEMAGG=mean (2026-11-05): the memory column on every step panel, as in training
+[ -n "${BOXMEM:-}" ] && EXTRA+=(--collision_box_memory "${BOXMEM}" --collision_box_memory_agg "${BOXMEMAGG:-mean}")
 # STATICMOVERS=12,13: person/vehicle Gaussians stay per-frame in static mode
 [ -n "${STATICMOVERS:-}" ] && EXTRA+=(--static_movers "${STATICMOVERS}")
 if [ "${COVSWEEP:-0}" = "1" ]; then
@@ -102,7 +107,7 @@ python scripts/check_rewards.py \
     --ladder_dists "${LADDER:-0.8,1.0,1.2,1.5,1.8,2.1,2.4}" \
     --collision_look_ahead "${COLLAHEAD:-1.0}" \
     ${SURVEY:+--survey_video} \
-    --live_ckpt "${LIVECKPT:-/scratch/m000204-pm06b/joana/runs/train_semantic_v26_campus/checkpoint-epoch-10.safetensors}" \
+    --live_ckpt "${LIVECKPT:-$S/runs/train_semantic_v35b_p6_ppl5/checkpoint-epoch-3.safetensors}" --model_path "$S/NeoVerse/models" \
     "${EXTRA[@]}"
 
 echo "==> reward check done"

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=offset-sweep
-#SBATCH --account=marlowe-m000204-pm06b
+#SBATCH --account=marlowe-m000204-pm07b
 #SBATCH --partition=batch
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=96G
 #SBATCH --time=04:00:00
-#SBATCH --output=/scratch/m000204-pm06b/joana/slurm-offset-sweep-%j.out
-#SBATCH --error=/scratch/m000204-pm06b/joana/slurm-offset-sweep-%j.err
+#SBATCH --output=/scratch/m000204-pm07b/joana/slurm-offset-sweep-%j.out
+#SBATCH --error=/scratch/m000204-pm07b/joana/slurm-offset-sweep-%j.err
 #SBATCH --exclude=n04,n13,n17,n18,n24
 # OFFSET SWEEP (2026-09-18, Joana's experiment): from recorded poses, step
 # sideways 0..2 m and turn 0..90 deg, render with the semantic world model,
@@ -25,7 +25,7 @@ fi
 export PYTHONNOUSERSITE=1
 NEO_ENV=/users/jmizrahi/.conda/envs/neoverse/bin
 SAM_ENV=/users/jmizrahi/.conda/envs/sam3/bin
-S=/scratch/m000204-pm06b/joana
+S=${SCRATCH_ROOT:-/scratch/m000204-pm07b/joana}
 : "${SCENES:?set SCENES=\"s1 s2 ...\"}"
 CLIPS=${CLIPS_DIR:-$S/data/campus_clips}
 POSES=${POSES_DIR:-$S/outputs/poses}
@@ -51,6 +51,8 @@ for s in $SCENES; do
             --yaw_max "${YAW_MAX:-90}" --yaw_step "${YAW_STEP:-10}" --history "${HISTORY:-gradual}" --out "$out") \
             || { echo "!!! stage1 FAILED: $s"; continue; }
     fi
+    # RENDERONLY=1 (2026-11-05): figure renders; skip SAM3 and grading
+    [ "${RENDERONLY:-0}" = "1" ] && { echo "[1/3] $s: RENDERONLY, done"; continue; }
     # [2] SAM3 on the generated frames (reads the png directory in file order)
     ln -sfn "$out/frames" "$S/NeoVerse/outputs/offset_frames_$s"
     sam_npz="$S/NeoVerse/outputs/sam3_labels/offset_frames_$s.npz"
