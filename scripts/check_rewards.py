@@ -1332,6 +1332,18 @@ def main():
                                                    look_ahead_dist=(args.collision_look_ahead if args.collision_look_ahead > 0 else args.look_ahead),
                                                    length=GO2_BODY_LENGTH, width=GO2_BODY_WIDTH)
                     _fm = [(q["lab"], q["K"], q["w2c"]) for q in _stored]     # oldest first, as the env stores it
+                    # 2026-11-05 (Fig. 5c): dump the strip's raw inputs so the paper panel can be
+                    # drawn at full size offline: stored labels + cameras, the box corners, the
+                    # robot position, and the current frame.
+                    if _fm:
+                        np.savez_compressed(str(od / f"{stem}_ep{r['ep']}_s{r['step']:02d}_memory.npz"),
+                                            labels=np.stack([np.asarray(q["lab"]).astype(np.int8) for q in _stored]),
+                                            K=np.stack([np.asarray(q["K"], np.float32) for q in _stored]),
+                                            w2c=np.stack([np.asarray(q["w2c"], np.float32) for q in _stored]),
+                                            steps=np.array([q["step"] for q in _stored]),
+                                            corners_world=np.asarray(_cw, np.float32), robot_pos=np.asarray(r["pos"], np.float32),
+                                            cur_rgb=np.asarray(rgb).astype(np.uint8), cur_labels=np.asarray(r["lab"]).astype(np.int8),
+                                            cur_K=np.asarray(r["K"], np.float32), cur_w2c=np.asarray(r["w2c"], np.float32))
                     mem = memory_strip(_fm, _cw, pal, non_trav, r["pos"],
                                        out_h=rgb.shape[0], out_w=rgb.shape[1])
                     if mem is None:
