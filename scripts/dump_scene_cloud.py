@@ -173,6 +173,8 @@ def main():
     ap.add_argument("--ply", action="store_true",
                     help="also write <scene>.ply (3DGS format) for SuperSplat")
     ap.add_argument("--ply_points", type=int, default=1_500_000)
+    ap.add_argument("--ply_labels", action="store_true",
+                    help="also write <scene>_labels.ply: the SAME splats as <scene>.ply, colored by class (palette 6)")
     args = ap.parse_args()
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -238,6 +240,20 @@ def main():
                            g["sh_dc"][take].astype(np.float32))
             print(f"  wrote {ply_path} ({len(take)} splats) — open at superspl.at/editor",
                   flush=True)
+            if args.ply_labels:
+                # class-colored twin of the same splats: identical geometry, SH DC set from the palette-6
+                # color of each primitive's label (void -> dark grey so unlabeled splats stay visible).
+                V6 = np.array([(60, 60, 60), (255, 255, 255), (0, 255, 0), (128, 128, 255), (0, 0, 255),
+                               (128, 0, 255), (255, 255, 0), (255, 0, 0), (255, 128, 0), (0, 128, 255),
+                               (0, 255, 255), (128, 255, 255), (255, 0, 255), (255, 128, 255)], np.float32) / 255.0
+                lab = np.clip(np.asarray(g["labels"][take]).astype(int), 0, len(V6) - 1)
+                sh_lab = ((V6[lab] - 0.5) / 0.28209479).astype(np.float32)
+                lab_path = args.out_dir / f"{scene}_labels.ply"
+                write_3dgs_ply(lab_path, (g["means"][take] * cal.scale).astype(np.float32),
+                               (g["scales3"][take] * cal.scale).astype(np.float32),
+                               g["quats"][take].astype(np.float32),
+                               g["opacities"][take].astype(np.float32), sh_lab)
+                print(f"  wrote {lab_path} (class colors, same splats as {ply_path.name})", flush=True)
         # Free the scene before the next one (each holds ~GBs on GPU).
         world._cache.pop(scene, None)
         import torch; torch.cuda.empty_cache()
