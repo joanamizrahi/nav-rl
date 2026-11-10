@@ -479,7 +479,8 @@ def main():
     ap.add_argument("--crash_requires_motion", action="store_true", help="adopted from env_config.json when present")
     ap.add_argument("--path_scenes", type=str, default="", help="--expert path: comma list of scenes (default: all training scenes)")
     ap.add_argument("--path_pairs", type=int, default=3, help="--expert path: start/goal pairs per scene")
-    ap.add_argument("--path_kinds", type=str, default="good,straight,obstacle,offwalk", help="--expert path: which paths to drive")
+    ap.add_argument("--path_kinds", type=str, default="good,straight,obstacle,offwalk,beyond", help="--expert path: which paths to drive")
+    ap.add_argument("--path_plan_only", action="store_true", help="--expert path: write path_plan.json and the label grids, then stop (look before driving)")
     ap.add_argument("--path_frames", action="store_true", help="--expert path: save the generated frame, labels and opacity of every step")
     ap.add_argument("--expert", choices=["none", "map", "path"], default="none",
                     help="map: drive with the scripted map-reading expert instead of the "
@@ -881,6 +882,9 @@ def main():
                                     non_trav=np.asarray(env.unwrapped._non_trav),
                                     walk=np.asarray(getattr(env.unwrapped, "_walk_xy", {}).get(_sc), dtype=np.float32))
         print(f"[expert] scripted paths: {args.episodes} episodes (no policy loaded; env from {args.checkpoint})", flush=True)
+        if args.path_plan_only:
+            print(f"[expert] plan only: wrote {args.out_dir}/path_plan.json and path_grid_*.npz", flush=True)
+            return
     elif args.expert == "map":
         # Scripted privileged driver instead of a policy: records demos and
         # doubles as an end-to-end check of the reward's stop rules.

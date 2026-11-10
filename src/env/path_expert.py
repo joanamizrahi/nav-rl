@@ -17,10 +17,14 @@ walkable path exists. Each pair is then driven four ways:
             with a soft cost near no-go so it keeps a margin
   straight  the straight line start -> goal: cuts the lawn where the walk bends
             (the terrain and contact terms should price it)
-  obstacle  the good path, a detour into the nearest obstacle/vegetation cell,
-            then the goal (the contact term / crash should price it)
+  obstacle  the good path to its middle, then straight into the nearest
+            obstacle/vegetation cell and 1 m through it (contact / crash should
+            price it; no return leg, so it cannot loop around the cell)
   offwalk   a detour 7 m off the walk into unreconstructed space, then the
             goal (the coverage gate should price it)
+  beyond    back along the recorded walk past its first pose, then 12 m on
+            along the walk's direction: drivable ground the camera never saw,
+            so coverage falls step by step until the coverage gate ends it
 
 The controller is the map expert's: aim at a lookahead point on the polyline,
 turn at most yaw_step_rad per step, never a still step (a still step is a halt
@@ -32,7 +36,7 @@ import heapq
 
 import numpy as np
 
-KINDS = ("good", "straight", "obstacle", "offwalk")
+KINDS = ("good", "straight", "obstacle", "offwalk", "beyond")
 OBSTACLE_CLASSES = (10, 11)          # v14 obstacle, vegetation
 
 
@@ -190,7 +194,9 @@ class PathExpert:
                     oxy = np.array([self._xy(g, rc) for rc in ob])
                     d = np.linalg.norm(oxy - mid[None, :], axis=1)
                     if d.min() <= 4.0:
-                        paths["obstacle"] = np.vstack([good[:len(good) // 2], oxy[int(np.argmin(d))], goal])
+                        o = oxy[int(np.argmin(d))]
+                        u = (o - mid) / max(np.linalg.norm(o - mid), 1e-6)
+                        paths["obstacle"] = np.vstack([good[:len(good) // 2], o, o + 1.0 * u])
                 # offwalk: 7 m perpendicular to the walk direction at the middle, toward unknown space
                 tang = good[min(len(good) - 1, len(good) // 2 + 3)] - good[max(0, len(good) // 2 - 3)]
                 tang = tang / max(np.linalg.norm(tang), 1e-6)
@@ -207,6 +213,14 @@ class PathExpert:
                     if best is None or void > best[0]:
                         best = (void, q)
                 paths["offwalk"] = np.array([p0, best[1], goal])
+                # beyond: back along the walk to its first pose, then 12 m further out
+                back = np.asarray(walk[:int(f) + 1][::-1], dtype=float)
+                if len(back) >= 2:
+                    t = back[-1] - back[min(len(back) - 1, max(0, len(back) - 4))]
+                    if np.linalg.norm(t) < 1e-3:
+                        t = back[-1] - back[0]
+                    t = t / max(np.linalg.norm(t), 1e-6)
+                    paths["beyond"] = np.vstack([p0, back[1:], back[-1] + 12.0 * t])
                 for kind in self.kinds:
                     if kind in paths:
                         self.plan.append(dict(scene=scene, pair=pi, kind=kind, start_frame=int(f),

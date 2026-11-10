@@ -177,6 +177,8 @@ fi
 [ -n "${PATHPAIRS:-}" ] && EXTRA_ARGS+=(--path_pairs "$PATHPAIRS")
 [ -n "${PATHKINDS:-}" ] && EXTRA_ARGS+=(--path_kinds "$PATHKINDS")
 [ "${PATHFRAMES:-0}" = "1" ] && EXTRA_ARGS+=(--path_frames)
+# PATHPLANONLY=1: write the plan + label grids and stop, to look at the paths before driving them.
+[ "${PATHPLANONLY:-0}" = "1" ] && EXTRA_ARGS+=(--path_plan_only)
 [ "${KEEPFAILED:-0}" = "1" ] && EXTRA_ARGS+=(--keep_failed_demos)
 [ -n "${MEMSNAP:-}" ] && { EXTRA_ARGS+=(--memory_snap_every "$MEMSNAP"); OUT_SUFFIX="${OUT_SUFFIX}_memsnap${MEMSNAP}"; }
 # CRASHANY=1 (2026-09-27): score a footprint collision as a crash at ANY throttle. Training
