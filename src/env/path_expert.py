@@ -42,8 +42,8 @@ def _wrap(a: float) -> float:
 
 class PathExpert:
     def __init__(self, env, scenes=None, n_pairs: int = 3, kinds=KINDS,
-                 lookahead_m: float = 0.75, inflate_m: float = 0.25,
-                 margin_cost: float = 4.0, offwalk_m: float = 7.0,
+                 lookahead_m: float = 0.75, inflate_m: float = 0.6,
+                 margin_cost: float = 8.0, offwalk_m: float = 7.0,
                  ahead_range=(4.0, 8.0), min_cross_m: float = 0.5, seed: int = 0):
         self.env = env
         self.u = env.unwrapped
@@ -100,7 +100,7 @@ class PathExpert:
             return None
         free = free.copy()
         free[s] = free[t] = True                      # start/goal may sit on the inflated margin
-        pen = self.margin_cost * np.exp(-dist / 0.5)
+        pen = self.margin_cost * np.exp(-dist / 1.0)      # prefer the middle of the walkway (2026-11-09: a 0.25 m margin skimmed the lawn edge and the box memory charged it)
         nb = [(-1, 0, 1.0), (1, 0, 1.0), (0, -1, 1.0), (0, 1, 1.0),
               (-1, -1, 1.414), (-1, 1, 1.414), (1, -1, 1.414), (1, 1, 1.414)]
         openq = [(0.0, s)]
@@ -168,6 +168,10 @@ class PathExpert:
                     continue
                 p0 = np.asarray(cal.robot_pose_nav(f)[:2, 3], dtype=float)
                 good = self._astar(g, free_inf, dist, p0, goal)
+                if good is None:          # walkway narrower than the margin: relax to 0.3 m, still clear of the edge cells
+                    from scipy import ndimage
+                    _k = max(1, int(round(0.3 / g.res)))
+                    good = self._astar(g, free & ~ndimage.binary_dilation(nontrav, iterations=_k), dist, p0, goal)
                 if good is None:
                     continue
                 chosen.append((f, goal, good, cross))
