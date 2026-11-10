@@ -480,6 +480,7 @@ def main():
     ap.add_argument("--path_scenes", type=str, default="", help="--expert path: comma list of scenes (default: all training scenes)")
     ap.add_argument("--path_pairs", type=int, default=3, help="--expert path: start/goal pairs per scene")
     ap.add_argument("--path_kinds", type=str, default="good,straight,obstacle,beyond", help="--expert path: which paths to drive")
+    ap.add_argument("--path_plan_file", type=str, default="", help="--expert path: drive the episodes in this plan JSON (same format as path_plan.json) instead of choosing pairs")
     ap.add_argument("--path_plan_only", action="store_true", help="--expert path: write path_plan.json and the label grids, then stop (look before driving)")
     ap.add_argument("--path_frames", action="store_true", help="--expert path: save the generated frame, labels and opacity of every step")
     ap.add_argument("--expert", choices=["none", "map", "path"], default="none",
@@ -871,7 +872,14 @@ def main():
         model = PathExpert(env, scenes=[v for v in args.path_scenes.split(",") if v.strip()] or None,
                            n_pairs=args.path_pairs, kinds=tuple(k for k in args.path_kinds.split(",") if k.strip()),
                            seed=args.eval_seed)
-        model.build_plan()
+        if args.path_plan_file:      # hand-picked episodes (2026-11-10): same format as path_plan.json
+            model.plan = [q for q in json.load(open(args.path_plan_file)) if not model.scenes or q["scene"] in model.scenes]
+            model.scenes = sorted({q["scene"] for q in model.plan})
+            for _sc in model.scenes:
+                model._grid(_sc)      # loads the scene so its label grid is saved below
+            print(f"[path] plan from {args.path_plan_file}: {len(model.plan)} episodes", flush=True)
+        else:
+            model.build_plan()
         args.episodes = len(model.plan)
         args.videos = 0
         (args.out_dir / "path_plan.json").write_text(json.dumps(model.plan))

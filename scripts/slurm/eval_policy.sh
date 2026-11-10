@@ -177,6 +177,8 @@ fi
 [ -n "${PATHPAIRS:-}" ] && EXTRA_ARGS+=(--path_pairs "$PATHPAIRS")
 [ -n "${PATHKINDS:-}" ] && EXTRA_ARGS+=(--path_kinds "$PATHKINDS")
 [ "${PATHFRAMES:-0}" = "1" ] && EXTRA_ARGS+=(--path_frames)
+# PATHPLANFILE=<json>: drive these hand-picked episodes (path_plan.json format) instead of choosing pairs.
+[ -n "${PATHPLANFILE:-}" ] && EXTRA_ARGS+=(--path_plan_file "$PATHPLANFILE")
 # PATHPLANONLY=1: write the plan + label grids and stop, to look at the paths before driving them.
 [ "${PATHPLANONLY:-0}" = "1" ] && EXTRA_ARGS+=(--path_plan_only)
 [ "${KEEPFAILED:-0}" = "1" ] && EXTRA_ARGS+=(--keep_failed_demos)
