@@ -1016,6 +1016,14 @@ class SceneEnv(gym.Env if gym is not None else object):
                               and self.np_random.random() < float(self.cfg.mirror_prob))
         idx = self.np_random.integers(0, len(self.scene_ids))
         self._scene_id = self.scene_ids[idx]
+        # options (2026-11-09, scripted-path reward check): a chosen scene, a recorded
+        # start frame and a goal point. Only WHERE the episode starts and ends is set;
+        # the reward, rendering and termination are untouched.
+        _opt = dict(options or {})
+        if _opt.get("scene") is not None:
+            self._scene_id = str(_opt["scene"])
+        if _opt:
+            self._mirrored = False
         self.world_backend.load_scene(self._scene_id)
         self._load_obstacle_points(self._scene_id)
         if bool(self.cfg.look_ahead_auto):
@@ -1174,6 +1182,15 @@ class SceneEnv(gym.Env if gym is not None else object):
             self._goal_case = str(_r["cls"]); self._goal_detour = float(_r.get("detour", float("nan"))); self._goal_min_width = float(_r.get("min_width_m", float("nan")))
             # the reward goal / distances must follow a redrawn goal
             self._initial_goal_dist = float(np.linalg.norm(self._robot_pose_world[:3, 3] - self._goal_world))
+        if _opt.get("start_frame") is not None:
+            _cal = self.world_backend._calib[self._scene_id]
+            self._robot_pose_world = _cal.robot_pose_nav(
+                int(_opt["start_frame"]),
+                heading_from_walk=bool(getattr(self.cfg, "spawn_heading_from_walk", False))).copy()
+        if _opt.get("goal_xy") is not None:
+            _gz = float(np.asarray(self._goal_world)[2]) if getattr(self, "_goal_world", None) is not None \
+                else float(self._robot_pose_world[2, 3])
+            self._goal_world = np.array([float(_opt["goal_xy"][0]), float(_opt["goal_xy"][1]), _gz], dtype=np.float32)
         self._prev_position = None
         # Stale from the previous episode otherwise: the rollout video drew the
         # spawn frame's footprint with the LAST episode's final heading (09-04).

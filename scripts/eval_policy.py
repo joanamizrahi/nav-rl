@@ -477,7 +477,11 @@ def main():
     ap.add_argument("--look_ahead_auto", action="store_true", help="adopted from env_config.json when present")
     ap.add_argument("--footprint_next_heading", action="store_true", help="adopted from env_config.json when present")
     ap.add_argument("--crash_requires_motion", action="store_true", help="adopted from env_config.json when present")
-    ap.add_argument("--expert", choices=["none", "map"], default="none",
+    ap.add_argument("--path_scenes", type=str, default="", help="--expert path: comma list of scenes (default: all training scenes)")
+    ap.add_argument("--path_pairs", type=int, default=3, help="--expert path: start/goal pairs per scene")
+    ap.add_argument("--path_kinds", type=str, default="good,straight,obstacle,offwalk", help="--expert path: which paths to drive")
+    ap.add_argument("--path_frames", action="store_true", help="--expert path: save the generated frame, labels and opacity of every step")
+    ap.add_argument("--expert", choices=["none", "map", "path"], default="none",
                     help="map: drive with the scripted map-reading expert instead of the "
                          "checkpoint's policy and record (frame, goal, action) demos; the "
                          "checkpoint still supplies the env config and resolution")
@@ -858,7 +862,20 @@ def main():
                 return obs
         inner_env = BlindObs(inner_env)
     env = Monitor(inner_env)
-    if args.expert == "map":
+    path_steps = []
+    if args.expert == "path":
+        # Scripted good/bad paths scored by the training reward (2026-11-09): no policy is
+        # loaded; the env is the checkpoint's, adopted and hard-checked above.
+        from src.env.path_expert import PathExpert
+        model = PathExpert(env, scenes=[v for v in args.path_scenes.split(",") if v.strip()] or None,
+                           n_pairs=args.path_pairs, kinds=tuple(k for k in args.path_kinds.split(",") if k.strip()),
+                           seed=args.eval_seed)
+        model.build_plan()
+        args.episodes = len(model.plan)
+        args.videos = 0
+        (args.out_dir / "path_plan.json").write_text(json.dumps(model.plan))
+        print(f"[expert] scripted paths: {args.episodes} episodes (no policy loaded; env from {args.checkpoint})", flush=True)
+    elif args.expert == "map":
         # Scripted privileged driver instead of a policy: records demos and
         # doubles as an end-to-end check of the reward's stop rules.
         from src.env.map_expert import MapExpert
@@ -903,7 +920,15 @@ def main():
         # and so a second policy evaluated at the same --eval_seed sees
         # identical spawns and goals. Unseeded, blind and sighted runs drew
         # different goals and could only be compared in aggregate.
-        obs, _ = env.reset(seed=args.eval_seed * 10000 + ep)
+        if args.expert == "path":
+            obs, _ = env.reset(seed=args.eval_seed * 10000 + ep, options=model.options(ep))
+            model.begin(ep)
+            _pp = model.plan[ep]
+            print(f"[path] ep {ep}: {_pp['scene']} pair {_pp['pair']} {_pp['kind']} "
+                  f"start frame {_pp['start_frame']} goal {_pp['goal_xy']} (straight line crosses {_pp['cross_m']:.1f} m no-go)", flush=True)
+            _ep_frames = {"rgb": [], "labels": [], "alpha": [], "pose": []}
+        else:
+            obs, _ = env.reset(seed=args.eval_seed * 10000 + ep)
         # The reward of step k is charged at the pose BEFORE action k; traj
         # records poses AFTER each action. Keep the spawn so step 1 is drawable.
         spawn_pose = _pose_xyyaw(env)
@@ -939,6 +964,21 @@ def main():
                 ep_act.append(np.asarray(action, dtype=np.float32).copy())
             obs, r, term, trunc, info = env.step(action)
             total_r += float(r)
+            if args.expert == "path":
+                _u = env.unwrapped
+                _row = {"ep": ep, "scene": model.cur["scene"], "pair": model.cur["pair"], "kind": model.cur["kind"],
+                        "step": steps, "reward": float(r), "pose": _pose_xyyaw(env),
+                        "coverage": float(info.get("coverage", float("nan"))),
+                        "dominant_class": int(info.get("dominant_class_id", -1)),
+                        "terms": {k: float(info.get(k, 0.0)) for k in EVAL_COMPONENTS}}
+                path_steps.append(_row)
+                if args.path_frames:
+                    _ep_frames["rgb"].append(np.asarray(_u._last_rgb, dtype=np.uint8))
+                    _l = getattr(_u, "_injected_labels", None)
+                    _ep_frames["labels"].append(np.asarray(_l, dtype=np.int8) if _l is not None else np.zeros(1, np.int8))
+                    _a = getattr(_u, "_last_alpha", None)
+                    _ep_frames["alpha"].append(np.asarray(_a, dtype=np.float16) if _a is not None else np.zeros(1, np.float16))
+                    _ep_frames["pose"].append(_pose_xyyaw(env))
             steps += 1
             for k in EVAL_COMPONENTS:
                 v = float(info.get(k, 0.0))
@@ -989,6 +1029,11 @@ def main():
             traj.append(_pose_xyyaw(env) + [frac, gc])
             done = term or trunc
         d_final = float(info.get("dist_to_goal", -1))
+        if args.expert == "path" and args.path_frames and _ep_frames["rgb"]:
+            np.savez_compressed(args.out_dir / f"path_ep{ep:03d}_{model.cur['scene']}_p{model.cur['pair']}_{model.cur['kind']}.npz",
+                                rgb=np.stack(_ep_frames["rgb"]), alpha=np.stack(_ep_frames["alpha"]),
+                                labels=np.stack(_ep_frames["labels"]), pose=np.asarray(_ep_frames["pose"], dtype=np.float32),
+                                path=np.asarray(model.cur["path"], dtype=np.float32), goal=np.asarray(model.cur["goal_xy"], dtype=np.float32))
         if term:
             outcome = "GOAL"
         elif float(info.get("crash", 0.0)) != 0.0:
@@ -1055,6 +1100,11 @@ def main():
         _n = len(_rs); _s = sum(1 for r in _rs if r["success"]); _c = sum(1 for r in _rs if r["outcome"] == "CRASH")
         _dt = [r["goal_detour"] for r in _rs if r.get("goal_detour", float("nan")) == r.get("goal_detour", float("nan")) and np.isfinite(r.get("goal_detour", float("nan")))]
         print(f"  {_k:14s} n={_n:3d}  GOAL {_s:3d} ({100.0 * _s / max(_n, 1):4.0f}%)  CRASH {_c:3d}  median detour {np.median(_dt) if _dt else float('nan'):.2f}", flush=True)
+    if args.expert == "path":
+        with open(args.out_dir / "path_steps.jsonl", "w") as _fh:
+            for _row in path_steps:
+                _fh.write(json.dumps(_row) + "\n")
+        print(f"[path] wrote {len(path_steps)} step rows -> {args.out_dir / 'path_steps.jsonl'}", flush=True)
     # aggregate terrain occupancy across all episodes (share of ALL steps)
     agg: dict = {}
     for rr in results:

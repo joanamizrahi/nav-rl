@@ -171,6 +171,12 @@ fi
 # EXPERT=map: the scripted map-reading driver replaces the policy and records
 # demos to <eval dir>/demos.npz (feed to a training arm with LIVE_DEMOS=...).
 [ -n "${EXPERT:-}" ] && { EXTRA_ARGS+=(--expert "$EXPERT"); OUT_SUFFIX="${OUT_SUFFIX}_expert${EXPERT}"; }
+# EXPERT=path (2026-11-09): scripted good/bad paths scored by the training reward.
+# PATHPAIRS start/goal pairs per scene (3), PATHKINDS (good,straight,obstacle,offwalk),
+# PATHFRAMES=1 saves the generated frame, labels and opacity of every step.
+[ -n "${PATHPAIRS:-}" ] && EXTRA_ARGS+=(--path_pairs "$PATHPAIRS")
+[ -n "${PATHKINDS:-}" ] && EXTRA_ARGS+=(--path_kinds "$PATHKINDS")
+[ "${PATHFRAMES:-0}" = "1" ] && EXTRA_ARGS+=(--path_frames)
 [ "${KEEPFAILED:-0}" = "1" ] && EXTRA_ARGS+=(--keep_failed_demos)
 [ -n "${MEMSNAP:-}" ] && { EXTRA_ARGS+=(--memory_snap_every "$MEMSNAP"); OUT_SUFFIX="${OUT_SUFFIX}_memsnap${MEMSNAP}"; }
 # CRASHANY=1 (2026-09-27): score a footprint collision as a crash at ANY throttle. Training
