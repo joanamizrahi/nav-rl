@@ -60,6 +60,7 @@ class PathExpert:
         self.plan = []          # list of dicts: scene, pair, kind, start_frame, goal_xy, path [K,2]
         self.cur = None
         self._wp_i = 0
+        self.policy = None      # eval_policy's summary reads model.policy.log_std; a scripted driver has none
 
     # ------------------------------------------------------------ map access
     def _grid(self, scene):
