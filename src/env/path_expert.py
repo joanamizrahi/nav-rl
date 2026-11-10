@@ -261,20 +261,25 @@ class PathExpert:
         p = np.asarray(pose[:2, 3], dtype=float)
         yaw = float(np.arctan2(pose[1, 0], pose[0, 0]))
         path = self.path
-        # advance along the polyline: the nearest vertex at or after the last one reached
-        seg = path[self._wp_i:]
-        k = int(np.argmin(np.linalg.norm(seg - p[None, :], axis=1)))
-        self._wp_i = min(self._wp_i + k, len(path) - 1)
-        # lookahead point
-        wp, acc, i = path[-1], 0.0, self._wp_i
-        prev = p
-        while i < len(path):
-            acc += float(np.linalg.norm(path[i] - prev))
-            if acc >= self.lookahead:
-                wp = path[i]
-                break
-            prev = path[i]
-            i += 1
+        # aim point: project the robot onto the polyline (segments from the last one reached on), then walk
+        # `lookahead` metres further along it. (Fix 2026-11-09: the old nearest-VERTEX rule aimed back at the
+        # start vertex once the robot was > lookahead past it, so sparse 2-3 vertex paths looped.)
+        best = (np.inf, self._wp_i, 0.0)
+        for j in range(self._wp_i, len(path) - 1):
+            a_, b_ = path[j], path[j + 1]; ab = b_ - a_; L2 = float(ab @ ab)
+            t = 0.0 if L2 < 1e-12 else float(np.clip((p - a_) @ ab / L2, 0.0, 1.0))
+            dd = float(np.linalg.norm(a_ + t * ab - p))
+            if dd < best[0] - 1e-9:
+                best = (dd, j, t)
+        _, j, t = best
+        self._wp_i = j
+        q = path[j] + t * (path[j + 1] - path[j]) if len(path) > 1 else path[0]
+        rem, wp = self.lookahead, path[-1]
+        while j < len(path) - 1:
+            seg_len = float(np.linalg.norm(path[j + 1] - q))
+            if seg_len >= rem:
+                wp = q + (path[j + 1] - q) * (rem / max(seg_len, 1e-9)); break
+            rem -= seg_len; j += 1; q = path[j]
         dyaw = _wrap(float(np.arctan2(wp[1] - p[1], wp[0] - p[0])) - yaw)
         a_yaw = float(np.clip(dyaw / float(cfg.yaw_step_rad), -1.0, 1.0))
         thr = 1.0 if abs(dyaw) < 0.35 else (0.6 if abs(dyaw) < 0.9 else 0.4)
