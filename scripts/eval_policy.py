@@ -932,7 +932,7 @@ def main():
             _pp = model.plan[ep]
             print(f"[path] ep {ep}: {_pp['scene']} pair {_pp['pair']} {_pp['kind']} "
                   f"start frame {_pp['start_frame']} goal {_pp['goal_xy']} (straight line crosses {_pp['cross_m']:.1f} m no-go)", flush=True)
-            _ep_frames = {"rgb": [], "labels": [], "alpha": [], "pose": []}
+            _ep_frames = {"rgb": [], "labels": [], "alpha": [], "pose": [], "K": [], "w2c": []}
         else:
             obs, _ = env.reset(seed=args.eval_seed * 10000 + ep)
         # The reward of step k is charged at the pose BEFORE action k; traj
@@ -968,6 +968,9 @@ def main():
                 ep_obs.append(np.asarray(obs["rgb"], dtype=np.uint8).copy())
                 ep_goal.append(np.asarray(obs["goal"], dtype=np.float32).copy())
                 ep_act.append(np.asarray(action, dtype=np.float32).copy())
+            if args.expert == "path" and args.path_frames:
+                _pre_rgb = None if env.unwrapped._last_rgb is None else np.asarray(env.unwrapped._last_rgb, dtype=np.uint8).copy()
+                _pre_pose = _pose_xyyaw(env)
             obs, r, term, trunc, info = env.step(action)
             total_r += float(r)
             if args.expert == "path":
@@ -979,12 +982,17 @@ def main():
                         "terms": {k: float(info.get(k, 0.0)) for k in EVAL_COMPONENTS}}
                 path_steps.append(_row)
                 if args.path_frames:
-                    _ep_frames["rgb"].append(np.asarray(_u._last_rgb, dtype=np.uint8))
-                    _l = getattr(_u, "_injected_labels", None)
-                    _ep_frames["labels"].append(np.asarray(_l, dtype=np.int8) if _l is not None else np.zeros(1, np.int8))
+                    # the frame the reward of THIS step was computed on: the RGB before the move, and the
+                    # labels + camera the env stored in its memory buffer for that frame (stored after the reward)
+                    _fm = getattr(_u, "_frame_memory", None) or []
+                    _sem, _K, _w2c = (_fm[-1] if _fm else (None, None, None))
+                    _ep_frames["rgb"].append(_pre_rgb if _pre_rgb is not None else np.zeros((1, 1, 3), np.uint8))
+                    _ep_frames["labels"].append(np.asarray(_sem, dtype=np.int16) if _sem is not None else np.zeros((1, 1), np.int16))
+                    _ep_frames["K"].append(np.asarray(_K, dtype=np.float32) if _K is not None else np.eye(3, dtype=np.float32))
+                    _ep_frames["w2c"].append(np.asarray(_w2c, dtype=np.float32) if _w2c is not None else np.eye(4, dtype=np.float32))
                     _a = getattr(_u, "_last_alpha", None)
                     _ep_frames["alpha"].append(np.asarray(_a, dtype=np.float16) if _a is not None else np.zeros(1, np.float16))
-                    _ep_frames["pose"].append(_pose_xyyaw(env))
+                    _ep_frames["pose"].append(_pre_pose)
             steps += 1
             for k in EVAL_COMPONENTS:
                 v = float(info.get(k, 0.0))
@@ -1038,7 +1046,7 @@ def main():
         if args.expert == "path" and args.path_frames and _ep_frames["rgb"]:
             np.savez_compressed(args.out_dir / f"path_ep{ep:03d}_{model.cur['scene']}_p{model.cur['pair']}_{model.cur['kind']}.npz",
                                 rgb=np.stack(_ep_frames["rgb"]), alpha=np.stack(_ep_frames["alpha"]),
-                                labels=np.stack(_ep_frames["labels"]), pose=np.asarray(_ep_frames["pose"], dtype=np.float32),
+                                labels=np.stack(_ep_frames["labels"]), K=np.stack(_ep_frames["K"]), w2c=np.stack(_ep_frames["w2c"]), pose=np.asarray(_ep_frames["pose"], dtype=np.float32),
                                 path=np.asarray(model.cur["path"], dtype=np.float32), goal=np.asarray(model.cur["goal_xy"], dtype=np.float32))
         if term:
             outcome = "GOAL"
