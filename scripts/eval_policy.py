@@ -479,7 +479,7 @@ def main():
     ap.add_argument("--crash_requires_motion", action="store_true", help="adopted from env_config.json when present")
     ap.add_argument("--path_scenes", type=str, default="", help="--expert path: comma list of scenes (default: all training scenes)")
     ap.add_argument("--path_pairs", type=int, default=3, help="--expert path: start/goal pairs per scene")
-    ap.add_argument("--path_kinds", type=str, default="good,straight,obstacle,offwalk,beyond", help="--expert path: which paths to drive")
+    ap.add_argument("--path_kinds", type=str, default="good,straight,obstacle,beyond", help="--expert path: which paths to drive")
     ap.add_argument("--path_plan_only", action="store_true", help="--expert path: write path_plan.json and the label grids, then stop (look before driving)")
     ap.add_argument("--path_frames", action="store_true", help="--expert path: save the generated frame, labels and opacity of every step")
     ap.add_argument("--expert", choices=["none", "map", "path"], default="none",

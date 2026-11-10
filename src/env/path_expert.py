@@ -22,9 +22,9 @@ walkable path exists. Each pair is then driven four ways:
             price it; no return leg, so it cannot loop around the cell)
   offwalk   a detour 7 m off the walk into unreconstructed space, then the
             goal (the coverage gate should price it)
-  beyond    back along the recorded walk past its first pose, then 12 m on
-            along the walk's direction: drivable ground the camera never saw,
-            so coverage falls step by step until the coverage gate ends it
+  beyond    1 m along the walk, then veer 25-40 deg off it for 14 m (the side and
+            angle crossing the least no-go; none if every line crosses > 0.35 m): each step is farther from where the
+            camera went, so coverage falls step by step until the gate ends it
 
 The controller is the map expert's: aim at a lookahead point on the polyline,
 turn at most yaw_step_rad per step, never a still step (a still step is a halt
@@ -36,7 +36,7 @@ import heapq
 
 import numpy as np
 
-KINDS = ("good", "straight", "obstacle", "offwalk", "beyond")
+KINDS = ("good", "straight", "obstacle", "beyond")   # offwalk still available by name
 OBSTACLE_CLASSES = (10, 11)          # v14 obstacle, vegetation
 
 
@@ -213,14 +213,25 @@ class PathExpert:
                     if best is None or void > best[0]:
                         best = (void, q)
                 paths["offwalk"] = np.array([p0, best[1], goal])
-                # beyond: back along the walk to its first pose, then 12 m further out
-                back = np.asarray(walk[:int(f) + 1][::-1], dtype=float)
-                if len(back) >= 2:
-                    t = back[-1] - back[min(len(back) - 1, max(0, len(back) - 4))]
-                    if np.linalg.norm(t) < 1e-3:
-                        t = back[-1] - back[0]
-                    t = t / max(np.linalg.norm(t), 1e-6)
-                    paths["beyond"] = np.vstack([p0, back[1:], back[-1] + 12.0 * t])
+                # beyond: set off along the walk's heading at the start, then veer 25-40 deg to one side and keep
+                # going 14 m: every step is farther from where the camera went, so coverage falls gradually.
+                # The side and angle are the ones whose line crosses the least no-go ground on the map
+                # (a contact crash would end it before coverage does); ties go to the line that leaves the map sooner.
+                fw = walk[min(len(walk) - 1, int(f) + 4)] - walk[int(f)]
+                fw = fw / max(np.linalg.norm(fw), 1e-6)
+                bestb = None
+                for ang in (20, -20, 25, -25, 30, -30, 35, -35, 40, -40, 45, -45):
+                    a = np.deg2rad(ang); d_ = np.array([np.cos(a) * fw[0] - np.sin(a) * fw[1], np.sin(a) * fw[0] + np.cos(a) * fw[1]])
+                    q0 = p0 + 1.0 * fw; q1 = q0 + 14.0 * d_
+                    ng = self._nogo_len(g, nontrav, q0, q1)
+                    pts = q0[None, :] + np.linspace(0, 1, 60)[:, None] * (q1 - q0)[None, :]
+                    rcs = [self._cell(g, pt) for pt in pts]
+                    known = np.array([0 <= r < lab.shape[0] and 0 <= c < lab.shape[1] and lab[r, c] >= 0 for r, c in rcs])
+                    key = (round(ng, 1), float(known.mean()))
+                    if bestb is None or key < bestb[0]:
+                        bestb = (key, np.array([p0, q0, q1]))
+                if bestb[0][0] <= 0.35:         # no clean line: a contact crash would hide the coverage gate, so skip
+                    paths["beyond"] = bestb[1]
                 for kind in self.kinds:
                     if kind in paths:
                         self.plan.append(dict(scene=scene, pair=pi, kind=kind, start_frame=int(f),
