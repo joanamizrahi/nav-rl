@@ -874,6 +874,12 @@ def main():
         args.episodes = len(model.plan)
         args.videos = 0
         (args.out_dir / "path_plan.json").write_text(json.dumps(model.plan))
+        for _sc in model.scenes:      # the fused label grid the planner and the proximity term read, for the figure
+            _g = getattr(env.unwrapped, "_label_grids", {}).get(_sc)
+            if _g is not None:
+                np.savez_compressed(args.out_dir / f"path_grid_{_sc}.npz", labels=_g.labels, x0=_g.x0, y0=_g.y0, res=_g.res,
+                                    non_trav=np.asarray(env.unwrapped._non_trav),
+                                    walk=np.asarray(getattr(env.unwrapped, "_walk_xy", {}).get(_sc), dtype=np.float32))
         print(f"[expert] scripted paths: {args.episodes} episodes (no policy loaded; env from {args.checkpoint})", flush=True)
     elif args.expert == "map":
         # Scripted privileged driver instead of a policy: records demos and
