@@ -208,7 +208,7 @@ class PathExpert:
                                               goal_xy=[float(goal[0]), float(goal[1])], cross_m=float(cross),
                                               path=paths[kind].tolist()))
         print(f"[path] plan: {len(self.plan)} episodes "
-              f"({', '.join(f'{k} {sum(p['kind'] == k for p in self.plan)}' for k in self.kinds)})", flush=True)
+              "(" + ", ".join("%s %d" % (k, sum(p["kind"] == k for p in self.plan)) for k in self.kinds) + ")", flush=True)
         return self.plan
 
     # ------------------------------------------------------------ episodes
