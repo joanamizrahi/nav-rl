@@ -124,7 +124,7 @@ def main():
         for x, y, yw in P:
             pose_recon, t_idx = world._pose_nav_to_recon(pose_nav_from_xy_yaw(float(x), float(y), float(yw)))
             w2c, K1, ts1 = world._single_frame_inputs(sc, pose_recon, t_idx)
-            cov = world._window_coverage(sc, w2c, K1, ts1, t_idx)
+            cov = world._window_coverage(sc, w2c[0], K1[0], ts1[0], t_idx)   # one view, as live_backend passes it
             mats.append(np.asarray(pose_recon, dtype=np.float64)); tids.append(int(t_idx)); covs.append(float(cov))
         with open(args.out_dir / f"{name}.json", "w") as fh:
             json.dump({"mode": "global", "num_frames": n, "name": name,
