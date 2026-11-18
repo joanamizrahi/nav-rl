@@ -10,6 +10,8 @@ Path kinds (one or more per call):
   lat   from recorded frame B, slide sideways 0 -> D metres (sign +1 = robot's left), heading kept
   turn  at recorded frame B, turn in place 0 -> D degrees (sign +1 = left)
   xy    resample a nav-frame waypoint list [[x, y, yaw_rad], ...] (JSON file) to 81 poses by arc length
+  par   follow the recorded path from frame B0 to B1, shifted D metres sideways (sign +1 = left); the shift eases
+        in over the first quarter of the clip, then the camera stays off the recording for the rest
 Motion is eased (slow start and stop).
 
 Writes to --out_dir:
@@ -71,6 +73,17 @@ def xy_path(wps, n):
     return np.stack([np.interp(s, seg, w[:, 0]), np.interp(s, seg, w[:, 1]), np.interp(s, seg, yaw)], 1)
 
 
+def par_path(pos, yaw_rec, b0, b1, sign, dist, n):
+    """Recorded path b0..b1 resampled to n poses by arc length, heading from the recording (unwrapped),
+    shifted sideways by sign*dist; the shift ramps 0 -> dist over the first quarter."""
+    w = np.concatenate([pos[b0:b1 + 1], np.unwrap(yaw_rec[b0:b1 + 1])[:, None]], 1)
+    P = xy_path(w, n)
+    k = max(2, n // 4)
+    off = np.r_[ease(k), np.ones(n - k)] * dist * sign
+    P[:, 0] -= off * np.sin(P[:, 2]); P[:, 1] += off * np.cos(P[:, 2])
+    return P
+
+
 def parse_spec(spec):
     b, sgn, d = spec.split(":")
     return int(b), float(sgn), float(d)
@@ -86,6 +99,7 @@ def main():
     ap.add_argument("--out_dir", required=True, type=Path)
     ap.add_argument("--lat", nargs="*", default=[], help="B:SIGN:METRES, e.g. 42:+1:9")
     ap.add_argument("--turn", nargs="*", default=[], help="B:SIGN:DEGREES, e.g. 42:+1:180")
+    ap.add_argument("--par", nargs="*", default=[], help="B0:B1:SIGN:METRES, e.g. 10:70:+1:3")
     ap.add_argument("--xy", nargs="*", default=[], help="JSON files of nav waypoints [[x, y, yaw_rad], ...]")
     ap.add_argument("--coverage_window", type=int, default=21)
     ap.add_argument("--num_frames", type=int, default=81)
@@ -113,9 +127,12 @@ def main():
         b, sg, d = parse_spec(spec); paths.append((f"{args.scene}_lat_f{b}_{'L' if sg > 0 else 'R'}{d:g}m", lat_path(pos, yaw_rec, b, sg, d, n)))
     for spec in args.turn:
         b, sg, d = parse_spec(spec); paths.append((f"{args.scene}_turn_f{b}_{'L' if sg > 0 else 'R'}{d:g}deg", turn_path(pos, yaw_rec, b, sg, d, n)))
+    for spec in args.par:
+        b0, b1, sg, d = spec.split(":"); b0, b1, sg, d = int(b0), int(b1), float(sg), float(d)
+        paths.append((f"{args.scene}_par_f{b0}-{b1}_{'L' if sg > 0 else 'R'}{d:g}m", par_path(pos, yaw_rec, b0, b1, sg, d, n)))
     for fpath in args.xy:
         paths.append((f"{args.scene}_xy_{Path(fpath).stem}", xy_path(json.load(open(fpath)), n)))
-    assert paths, "give at least one of --lat / --turn / --xy"
+    assert paths, "give at least one of --lat / --turn / --par / --xy"
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
     curves = {}

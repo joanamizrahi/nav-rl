@@ -12,7 +12,7 @@
 
 # Camera paths + per-frame coverage C_w for the supplementary video (scripts/video_paths.py). Rasterizer only.
 #   env SCENE=quad2_00 LAT="42:+1:9 42:-1:9" TURN="42:+1:180" sbatch --export=ALL scripts/slurm/video_paths.sh
-# Knobs: SCENE, LAT, TURN, XY (space-separated lists), OUT (default outputs/video_paths/<SCENE>).
+# Knobs: SCENE, LAT, TURN, PAR, XY (space-separated lists), OUT (default outputs/video_paths/<SCENE>).
 
 set -euo pipefail
 module load conda/24.3.0-0
@@ -28,6 +28,7 @@ OUT=${OUT:-/scratch/m000204-pm07b/joana/outputs/video_paths/${SCENE}}
 ARGS=""
 [ -n "${LAT:-}" ] && ARGS="$ARGS --lat $LAT"
 [ -n "${TURN:-}" ] && ARGS="$ARGS --turn $TURN"
+[ -n "${PAR:-}" ] && ARGS="$ARGS --par $PAR"
 [ -n "${XY:-}" ] && ARGS="$ARGS --xy $XY"
 
 python scripts/video_paths.py \
