@@ -16,7 +16,7 @@
 # Stages per scene: [1] render (neoverse env)  [2] SAM3 on the generated frames
 # (sam3 env, inside NeoVerse)  [3] grade (CPU).
 # Knobs: SCENES (required), LIVECKPT, SEMPAL, STATICMOVERS, RENDWIN, COVWIN,
-#        BASE_EVERY (8), LAT_MAX (2.0) LAT_STEP (0.2), YAW_MAX (90) YAW_STEP (10), OUTROOT.
+#        BASE_EVERY (8), BASE_LO (10), BASE_HI (70), LAT_MAX (2.0) LAT_STEP (0.2), YAW_MAX (90) YAW_STEP (10), OUTROOT.
 set -uo pipefail
 if command -v module >/dev/null 2>&1; then
     module load conda/24.3.0-0
@@ -47,7 +47,7 @@ for s in $SCENES; do
             --clips_dir "$CLIPS" --poses_dir "$POSES" --labels_dir "$LABELS" --live_ckpt "$LIVECKPT" \
             --sem_palette "$SEMPAL" --render_window "$RENDWIN" --coverage_window "$COVWIN" \
             ${STATICMOVERS:+--static_movers "$STATICMOVERS"} \
-            --base_every "${BASE_EVERY:-8}" --lat_max "${LAT_MAX:-2.0}" --lat_step "${LAT_STEP:-0.2}" \
+            --base_every "${BASE_EVERY:-8}" --base_lo "${BASE_LO:-10}" --base_hi "${BASE_HI:-70}" --lat_max "${LAT_MAX:-2.0}" --lat_step "${LAT_STEP:-0.2}" \
             --yaw_max "${YAW_MAX:-90}" --yaw_step "${YAW_STEP:-10}" --history "${HISTORY:-gradual}" --out "$out") \
             || { echo "!!! stage1 FAILED: $s"; continue; }
     fi
