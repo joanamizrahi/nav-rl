@@ -26,7 +26,10 @@ echo "commit: $(git log --oneline -1)"
 SCENE=${SCENE:-quad2_00}
 CKPT=${CKPT:-/scratch/m000204-pm07b/joana/runs/train_semantic_v35b_p6_ppl5/checkpoint-epoch-3.safetensors}
 OUT=${OUT:-/scratch/m000204-pm07b/joana/outputs/video_steps/${SCENE}}
-PATHS=${PATHS:?set PATHS to one or more path csvs}
+PATHS=${PATHS:-}
+# CORNER="10 30 50": corner test paths from those recorded frames; MODES="none median p90": context modes
+# side by side (2026-11-24, INTERP check); SIDE=left|right
+CORNER=${CORNER:-}; MODES=${MODES:-none}; SIDE=${SIDE:-left}
 
 python scripts/video_steps.py \
     --scene "$SCENE" \
@@ -34,5 +37,5 @@ python scripts/video_steps.py \
     --poses_dir /scratch/m000204-pm07b/joana/outputs/poses \
     --labels_dir /scratch/m000204-pm07b/joana/NeoVerse/outputs/sam3_labels_v14 \
     --live_ckpt "$CKPT" \
-    --out_dir "$OUT" --paths $PATHS
+    --out_dir "$OUT" ${PATHS:+--paths $PATHS} ${CORNER:+--corner_from $CORNER} --corner_side "$SIDE" --modes $MODES
 echo "==> video steps done: $OUT"

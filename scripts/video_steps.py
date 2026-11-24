@@ -57,7 +57,14 @@ def main():
     ap.add_argument("--reconstructor_path", default=_S + "/NeoVerse/models/NeoVerse/reconstructor.ckpt")
     ap.add_argument("--live_ckpt", required=True)
     ap.add_argument("--out_dir", required=True, type=Path)
-    ap.add_argument("--paths", nargs="+", required=True, help="path csvs from video_paths.py")
+    ap.add_argument("--paths", nargs="*", default=[], help="path csvs from video_paths.py")
+    ap.add_argument("--corner_from", type=int, nargs="*", default=[],
+                    help="recorded frame(s) to start a corner test path at: 4 straight steps, a 90 deg turn in 6 "
+                         "steps of 15 deg (0.25 m each), 4 straight steps -- how the policy takes a corner")
+    ap.add_argument("--corner_side", default="left", choices=["left", "right"])
+    ap.add_argument("--modes", nargs="+", default=["none"], choices=["none", "median", "p90"],
+                    help="context poses: none = last robot poses (training so far); median / p90 = INTERP with "
+                         "that percentile of the recording's turns as the cap. >1 mode adds side_by_side.mp4")
     ap.add_argument("--step_m", type=float, default=0.25, help="training step_size_m")
     ap.add_argument("--yaw_step", type=float, default=0.3, help="training yaw_step_rad")
     ap.add_argument("--render_window", type=int, default=21)
@@ -87,12 +94,30 @@ def main():
     sc = world._cache[args.scene]
     pal = (v14_palette(args.sem_palette).numpy() * 255).astype(np.uint8)
 
+    import src.env.live_backend as _lb
+    jobs = []
     for pcsv in args.paths:
         rows = list(csv.DictReader(open(pcsv)))
         P = np.array([[float(r["x"]), float(r["y"]), math.radians(float(r["yaw_deg"]))] for r in rows])
-        S = policy_steps(P, args.step_m, args.yaw_step)
-        name = Path(pcsv).stem
-        od = args.out_dir / name
+        jobs.append((Path(pcsv).stem, policy_steps(P, args.step_m, args.yaw_step)))
+    cal = world._calib[args.scene]
+    rec = np.asarray(cal.positions)[:, :2]
+    for f0 in args.corner_from:
+        f0 = int(np.clip(f0, 0, len(rec) - 2))
+        d = rec[min(f0 + 3, len(rec) - 1)] - rec[f0]
+        x, y, yw = float(rec[f0, 0]), float(rec[f0, 1]), math.atan2(d[1], d[0])
+        sgn = 1.0 if args.corner_side == "left" else -1.0
+        S = [(x, y, yw)]
+        for turn in [0.0] * 4 + [math.radians(15.0)] * 6 + [0.0] * 4:
+            yw += sgn * turn
+            x += args.step_m * math.cos(yw); y += args.step_m * math.sin(yw)
+            S.append((x, y, yw))
+        jobs.append((f"corner_f{f0}_{args.corner_side}", np.array(S)))
+    for name, S in jobs:
+      for mode in args.modes:
+        world.interp_history = mode != "none"
+        _lb.INTERP_TURN_PCT = 50 if mode == "median" else 90
+        od = args.out_dir / name / mode if len(args.modes) > 1 else args.out_dir / name
         for sub in ("rgb", "semantic", "raster"):
             (od / sub).mkdir(parents=True, exist_ok=True)
         world._pose_hist = []                            # episode start: cold history, as at a training reset
@@ -126,6 +151,25 @@ def main():
         c = np.array(covs)
         print(f"[steps] {name}: {len(S)} steps, C_w {c[0]:.2f} -> {c[-1]:.2f} (min {c.min():.2f})", flush=True)
 
+      if len(args.modes) > 1:                             # side by side: one panel per mode, coverage printed
+        n = len(sorted((args.out_dir / name / args.modes[0] / "rgb").glob("*.png")))
+        cov = {m: [float(r["coverage"]) for r in csv.DictReader(open(args.out_dir / name / m / "steps.csv"))]
+               for m in args.modes}
+        vw = None
+        for i in range(n):
+            tiles = []
+            for m in args.modes:
+                im = cv2.imread(str(args.out_dir / name / m / "rgb" / f"{i:03d}.png"))
+                cv2.putText(im, f"{m}  step {i}  C_w {cov[m][i]:.2f}", (10, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+                tiles.append(im)
+            fr = np.concatenate(tiles, axis=1)
+            cv2.imwrite(str(args.out_dir / name / f"side_{i:03d}.png"), fr)
+            if vw is None:
+                vw = cv2.VideoWriter(str(args.out_dir / name / "side_by_side.mp4"), cv2.VideoWriter_fourcc(*"mp4v"),
+                                     args.fps, (fr.shape[1], fr.shape[0]))
+            vw.write(fr)
+        vw.release()
+        print(f"[steps] {name}: side_by_side.mp4 ({' | '.join(args.modes)})", flush=True)
 
 if __name__ == "__main__":
     main()

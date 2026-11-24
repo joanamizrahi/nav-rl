@@ -94,6 +94,7 @@ def cold_history(pose_recon: np.ndarray, scene: dict, k: int, use_recorded: bool
 # recording; the last pose stays exactly the current one. Coverage is unaffected (it reads
 # only the last pose).
 INTERP_PATH_LEN = 16          # robot poses kept per history (the path the context is cut from)
+INTERP_TURN_PCT = 90          # percentile of the recording's per-frame turns used as the cap
 
 
 def _rot_angle(Ra: np.ndarray, Rb: np.ndarray) -> float:
@@ -122,8 +123,9 @@ def _rot_towards(Ra: np.ndarray, Rb: np.ndarray, t: float) -> np.ndarray:
 
 def recording_spacing(scene: dict) -> tuple:
     """(median step between recorded frames in recon units, 90th-percentile turn per frame in rad), cached."""
-    if "_interp_spacing" in scene:
-        return scene["_interp_spacing"]
+    _key = f"_interp_spacing_p{INTERP_TURN_PCT}"
+    if _key in scene:
+        return scene[_key]
     c2w = scene["cam2world"]
     c2w = c2w.detach().cpu().numpy() if hasattr(c2w, "detach") else np.asarray(c2w)
     c2w = c2w.astype(np.float64)
@@ -133,9 +135,9 @@ def recording_spacing(scene: dict) -> tuple:
     # recording turns at its corners (the median is mostly straight walking and would leave the
     # context of a turning robot nearly un-turned). Floor 1 deg. (Joana, 2026-11-24)
     out = (float(np.median(steps)) if len(steps) else 0.05,
-           max(float(np.percentile(turns, 90)) if turns else 0.0, np.radians(1.0)))
-    scene["_interp_spacing"] = out
-    print(f"[interp] recording spacing: step {out[0]:.4f} recon units, turn cap {np.degrees(out[1]):.2f} deg per frame (p90)",
+           max(float(np.percentile(turns, INTERP_TURN_PCT)) if turns else 0.0, np.radians(1.0)))
+    scene[_key] = out
+    print(f"[interp] recording spacing: step {out[0]:.4f} recon units, turn cap {np.degrees(out[1]):.2f} deg per frame (p{INTERP_TURN_PCT})",
           flush=True)
     return out
 
