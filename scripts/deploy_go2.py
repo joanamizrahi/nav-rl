@@ -210,6 +210,7 @@ def main():
             os.path.abspath(args.checkpoint))), "env_config.json")
         src = "CLI default"
         fwd_only = False
+        thr01 = False
         if os.path.exists(cfg_path):
             with open(cfg_path) as fh:
                 envc = json.load(fh)
@@ -223,12 +224,17 @@ def main():
             # sample meant "stand still", never "reverse"). Mirror that here, or a negative
             # mean action would drive the robot backwards into something it never saw.
             fwd_only = bool(envc.get("forward_only", False))
+            # 2026-11-24: THROTTLE01 policies output throttle on -1..1 and the training env
+            # used (a+1)/2. Apply the same map, or the robot runs at the wrong speed
+            # (mean 0 would mean standing still instead of half speed).
+            thr01 = bool(envc.get("throttle01", False))
         print(f"[deploy] loaded {args.checkpoint}")
         print(f"[deploy] observation from checkpoint: {OBS_W}x{OBS_H} (WxH)")
         print(f"[deploy] step {step_m} m, yaw {yaw_rad} rad per decision  [{src}]")
         print(f"[deploy] at {args.rate} Hz -> max v {step_m * args.rate:.2f} m/s, "
               f"max w {yaw_rad * args.rate:.2f} rad/s (clipped to {args.max_v}/{args.max_w})")
         print(f"[deploy] stop radius {args.goal_radius:.2f} m")
+        print(f"[deploy] throttle map: {'(a+1)/2, 0..1' if thr01 else 'raw'}  forward_only={fwd_only}")
         if args.max_v < step_m * args.rate - 1e-6:
             print(f"[deploy] WARNING: max_v {args.max_v} clips the policy's full-forward "
                   f"command ({step_m * args.rate:.2f} m/s). It will move less than it "
@@ -329,7 +335,8 @@ def main():
                 obs = {"rgb": preprocess(self.img, OBS_W, OBS_H),
                        "goal": np.array([dx, dy, bearing], dtype=np.float32)}
                 action, _ = model.predict(obs, deterministic=True)
-                v = float(np.clip(action[0] * step_m * args.rate, -args.max_v, args.max_v))
+                a_thr = 0.5 * (float(action[0]) + 1.0) if thr01 else float(action[0])
+                v = float(np.clip(a_thr * step_m * args.rate, -args.max_v, args.max_v))
                 if fwd_only:
                     v = max(0.0, v)
                 w = float(np.clip(action[1] * yaw_rad * args.rate, -args.max_w, args.max_w))

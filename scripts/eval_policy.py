@@ -268,6 +268,7 @@ def build_env(args):
         action_chunk=args.action_chunk,
         footprint_along_motion=args.footprint_along_motion,
         forward_only=args.forward_only,
+        throttle01=bool(getattr(args, "throttle01", False)),
         failure_snap_dir=str(args.out_dir / "failures"),
         memory_snap_every=int(getattr(args, "memory_snap_every", 0)),
         obs_out_hw=((args.obs_height, args.obs_width)
@@ -542,6 +543,8 @@ def main():
     ap.add_argument("--yaw_step_rad", type=float, default=0.5,
                     help="radians per unit yaw action — MUST match training "
                          "(J arms: 0.5)")
+    ap.add_argument("--throttle01", action="store_true",
+                    help="adopted from the run's env_config.json; set only to force it")
     ap.add_argument("--forward_only", action="store_true",
                     help="match the policy's training rule: negative velocity "
                          "clamps to 0")
@@ -668,7 +671,7 @@ def main():
             _dest = {"collision_look_ahead_m": "collision_look_ahead",
                      "goal_support_radius_m": "goal_support_radius"}
             args._adopted = {}
-            for _k in ("step_size_m", "yaw_step_rad", "forward_only",
+            for _k in ("step_size_m", "yaw_step_rad", "forward_only", "throttle01",
                        "look_ahead_dist", "goal_radius", "collision_threshold",
                        "collision_terminate_frac", "collision_terminate_penalty", "phantom_veto",
                        "action_chunk",

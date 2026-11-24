@@ -515,6 +515,12 @@ class SceneEnvConfig:
     # instead of pricing it; clamping at the env keeps the action space shape,
     # so warm-starts from older checkpoints still load.
     forward_only: bool = False
+    # Throttle on 0..1 (2026-11-24, Joana): the policy still outputs -1..1 (symmetric
+    # Gaussian, mean 0 at init) and the env maps throttle -> (a+1)/2, so every sample
+    # is a forward speed. Before, with forward_only, the negative half of the range
+    # all meant "stand still" and std-1 noise landed there about half the time.
+    # Yaw is untouched. Off by default so older runs and checkpoints are unchanged.
+    throttle01: bool = False
     # Motion-direction footprint (2026-08-26): score the ground THIS step's
     # action moves onto — forward actions score ahead (unchanged), backward
     # actions point the footprint behind the camera, where there are no
@@ -1612,6 +1618,9 @@ class SceneEnv(gym.Env if gym is not None else object):
         observation returned is the one AFTER the whole chunk."""
         k = max(1, self.cfg.action_chunk)
         action = np.asarray(action, dtype=np.float32).clip(-1.0, 1.0)
+        if bool(getattr(self.cfg, "throttle01", False)):
+            action = action.copy()
+            action[0:2 * k:2] = 0.5 * (action[0:2 * k:2] + 1.0)   # throttle of every sub-action
         # the WHOLE decision, before it is split into sub-actions: the plan the
         # policy committed to at this pose (2026-09-16, drawn in the wandb panel
         # and the rollout video). _last_action holds only the sub-action.

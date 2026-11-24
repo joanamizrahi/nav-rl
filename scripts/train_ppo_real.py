@@ -805,6 +805,7 @@ def _dump_env_config(args, cfg):
             "step_size_m": cfg.step_size_m,
             "yaw_step_rad": cfg.yaw_step_rad,
             "forward_only": bool(getattr(cfg, "forward_only", False)),
+            "throttle01": bool(getattr(cfg, "throttle01", False)),
             "look_ahead_dist": cfg.look_ahead_dist,
             "collision_look_ahead_m": cfg.collision_look_ahead_m,
             "collision_box_memory": getattr(cfg, "collision_box_memory", 0),
@@ -1200,6 +1201,7 @@ def _scene_env_cfg(args):
         action_chunk=getattr(args, "action_chunk", 1),
         footprint_along_motion=getattr(args, "footprint_along_motion", False),
         forward_only=getattr(args, "forward_only", False),
+        throttle01=getattr(args, "throttle01", False),
         action_smooth_cost=getattr(args, "action_smooth_cost", 0.0),
         goal_bonus=getattr(args, "goal_bonus", 50.0),        # v4 default
         obs_out_hw=((getattr(args, "obs_height", 336), getattr(args, "obs_width", 560))
@@ -2016,6 +2018,9 @@ def main():
                     help="score the footprint along the commanded motion "
                          "direction; motion onto unseen (rear) ground prices "
                          "as worst-case terrain instead of scoring free")
+    ap.add_argument("--throttle01", action="store_true",
+                    help="map the throttle output from -1..1 to 0..1 in the env "
+                         "(network range unchanged); yaw stays -1..1")
     ap.add_argument("--forward_only", action="store_true",
                     help="clamp negative velocity to 0 (stand-and-turn): kills "
                          "the backward-exploit class by construction")
