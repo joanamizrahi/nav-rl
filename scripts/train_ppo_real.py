@@ -2034,6 +2034,9 @@ def main():
                     help="before training, run zero-action steps and print the "
                          "per-component reward budget — the MEASURED cost of "
                          "standing still, which every freezing argument needs")
+    ap.add_argument("--log_std_init", type=float, default=None,
+                    help="starting log std of the action noise (SB3 default 0 = std 1; "
+                         "-0.69 = std 0.5)")
     ap.add_argument("--ent_coef", type=float, default=0.01,
                     help="PPO entropy bonus. 0.01 is what every run to date "
                          "used (it was hardcoded, not the SB3 default of 0). "
@@ -2450,6 +2453,11 @@ def main():
                 features_extractor_kwargs=_fk)
         if getattr(args, "image_norm_fix", False):
             policy_kwargs["normalize_images"] = False
+        # LOGSTD (2026-11-24): starting log std of the Gaussian action noise. SB3 default
+        # 0.0 = std 1, which on a -1..1 action range is as wide as the range itself; the
+        # paper policy's std only fell 0.99 -> 0.94 in 280k steps. None keeps the default.
+        if getattr(args, "log_std_init", None) is not None:
+            policy_kwargs["log_std_init"] = float(args.log_std_init)
         model = PPO(
         "MultiInputPolicy", env,
         policy_kwargs=policy_kwargs,
@@ -2463,7 +2471,10 @@ def main():
         # 2026-09-23: a K-frame stack sends K images per sample through the backbone, so a
         # fixed batch of 64 OOMed both stack-3 arms (500172, 500173) in the policy update.
         # Scale it down by K and keep it a multiple of 8. K=1 is unchanged at 64.
-        batch_size=max(8, (64 // max(1, int(getattr(args, "obs_frame_stack", 1)))) // 8 * 8),
+        # 2026-11-24: the cut was for the DINO backbone; the Nature CNN keeps 64 at any K,
+        # so a stacked CNN arm differs from the single-image one only in its input.
+        batch_size=(64 if getattr(args, "encoder", "nature") == "nature"
+                    else max(8, (64 // max(1, int(getattr(args, "obs_frame_stack", 1)))) // 8 * 8)),
         # v6c: constant lr again. v6b's linear decay produced a NEVER-learned
         # policy (0% at 200k/306k/400k, goal-blind) — the random-goal task needs
         # full-rate learning throughout (v6 only found its peak at 306k). The KL
