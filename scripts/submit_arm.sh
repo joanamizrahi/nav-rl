@@ -117,7 +117,12 @@ fi
 [ -n "$WARM" ] && [ -d "$WARM" ] && echo "    (directory: the newest ppo_*_steps.zip in it is chosen when the job starts)"
 if [ "$DRY" = 1 ]; then
     echo "    --- arguments the job would pass (PRINTARGS) ---"
-    PRINTARGS=1 bash scripts/slurm/train_ppo_real.sh 2>&1 | grep -E "^(ARGS|OUT):" | fold -s -w 150 | sed 's/^/    /'
+    _pa=$(PRINTARGS=1 bash scripts/slurm/train_ppo_real.sh 2>&1 || true)
+    if echo "$_pa" | grep -qE "^ARGS:"; then
+        echo "$_pa" | grep -E "^(ARGS|OUT):" | fold -s -w 150 | sed 's/^/    /'
+    else
+        echo "    NO ARGUMENTS PRINTED -- the launcher stopped early. Its last lines:"; echo "$_pa" | tail -8 | sed 's/^/      /'
+    fi
     echo "    (dry run, nothing submitted)"; exit 0
 fi
 sbatch --gres=gpu:$GPUS --mem=$MEM --cpus-per-task=$CPUS --time=$TIME "${EXTRA[@]}" scripts/slurm/train_ppo_real.sh

@@ -123,13 +123,13 @@ if [ "${LIVE:-0}" = "1" ]; then
     # The check below refuses to start if the job did not actually get K.
     if [ -n "${LIVEGPUS:-}" ] && [ "${LIVEGPUS}" != "1" ]; then
         NGPU=$(nvidia-smi -L 2>/dev/null | wc -l | tr -d ' ')
-        if [ "${NGPU:-0}" -lt "${LIVEGPUS}" ]; then
+        if [ "${PRINTARGS:-0}" != "1" ] && [ "${NGPU:-0}" -lt "${LIVEGPUS}" ]; then   # a preview runs on the login node: no GPUs there
             echo "REFUSED: LIVEGPUS=${LIVEGPUS} but this job has ${NGPU} GPU(s)." \
                  "Submit with: sbatch --gres=gpu:${LIVEGPUS} --mem=$((48*LIVEGPUS))G" \
                  "--cpus-per-task=$((4*LIVEGPUS)) ..."
             exit 3
         fi
-        echo "==> LIVEGPUS=${LIVEGPUS}: $(nvidia-smi -L | tr '\n' ';')"
+        echo "==> LIVEGPUS=${LIVEGPUS}: $(nvidia-smi -L 2>/dev/null | tr '\n' ';')"
         BC_ARGS="$BC_ARGS --live_gpus $LIVEGPUS"
         OUT=${OUT}_g${LIVEGPUS}
     fi

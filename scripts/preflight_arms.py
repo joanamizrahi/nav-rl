@@ -26,7 +26,9 @@ IGNORE = {"--seed"} - set()           # compared only where expected
 
 
 def args_of(arm):
-    out = subprocess.run(["bash", "scripts/submit_arm.sh", arm, "--dry"], capture_output=True, text=True).stdout
+    r = subprocess.run(["bash", "scripts/submit_arm.sh", arm, "--dry"], capture_output=True, text=True,
+                       env={**__import__("os").environ, "PREFLIGHT_RAW": "1"})
+    out = r.stdout + r.stderr
     lines = [l.strip() for l in out.splitlines()]
     try:
         i = next(n for n, l in enumerate(lines) if l.startswith("ARGS:"))
