@@ -122,7 +122,7 @@ if [ "${LIVE:-0}" = "1" ]; then
     #   sbatch --gres=gpu:$K --mem=$((48*K))G --cpus-per-task=$((4*K)) ...
     # The check below refuses to start if the job did not actually get K.
     if [ -n "${LIVEGPUS:-}" ] && [ "${LIVEGPUS}" != "1" ]; then
-        NGPU=$(nvidia-smi -L 2>/dev/null | wc -l | tr -d ' ')
+        NGPU=$( (nvidia-smi -L 2>/dev/null || true) | wc -l | tr -d ' ')   # no nvidia-smi (login node) must not kill the script under pipefail
         if [ "${PRINTARGS:-0}" != "1" ] && [ "${NGPU:-0}" -lt "${LIVEGPUS}" ]; then   # a preview runs on the login node: no GPUs there
             echo "REFUSED: LIVEGPUS=${LIVEGPUS} but this job has ${NGPU} GPU(s)." \
                  "Submit with: sbatch --gres=gpu:${LIVEGPUS} --mem=$((48*LIVEGPUS))G" \
