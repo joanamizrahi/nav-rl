@@ -774,6 +774,7 @@ def make_env(args):
                                     alpha_gate=not getattr(args, "no_alpha_gate", False),
         alpha_gate_tau=getattr(args, "alpha_gate_tau", 0.5),
         raster_obs=bool(getattr(args, "raster_obs", False)))
+        world.interp_history = bool(getattr(args, "interp_history", False))
     elif getattr(args, "obs_cache", None):
         # Ribbon-cache mode: observations = precomputed diffused views (v10 +
         # reader), reward labels = the cache's alpha-masked diffused labels.
@@ -806,6 +807,7 @@ def _dump_env_config(args, cfg):
             "yaw_step_rad": cfg.yaw_step_rad,
             "forward_only": bool(getattr(cfg, "forward_only", False)),
             "throttle01": bool(getattr(cfg, "throttle01", False)),
+            "interp_history": bool(getattr(args, "interp_history", False)),
             "look_ahead_dist": cfg.look_ahead_dist,
             "collision_look_ahead_m": cfg.collision_look_ahead_m,
             "collision_box_memory": getattr(cfg, "collision_box_memory", 0),
@@ -1320,6 +1322,8 @@ def make_live_vec_env(args):
         alpha_gate=not getattr(args, "no_alpha_gate", False),
         alpha_gate_tau=getattr(args, "alpha_gate_tau", 0.5),
         raster_obs=bool(getattr(args, "raster_obs", False)))
+    world.interp_history = bool(getattr(args, "interp_history", False))
+    print(f"[train_ppo_real] context poses: {'recording-like (INTERP)' if world.interp_history else 'last robot poses'}", flush=True)
     world.num_inference_steps = args.live_steps
     # Pre-reconstruct EVERY rotation scene now, while GPU headroom is maximal
     # (2026-08-30, G12 saga: first-visit reconstruction mid-training OOMs at
@@ -2018,6 +2022,9 @@ def main():
                     help="score the footprint along the commanded motion "
                          "direction; motion onto unseen (rear) ground prices "
                          "as worst-case terrain instead of scoring free")
+    ap.add_argument("--interp_history", action="store_true",
+                    help="context poses for the video model rebuilt along the robot path at the "
+                         "recording's spacing (live_backend.respace_history)")
     ap.add_argument("--throttle01", action="store_true",
                     help="map the throttle output from -1..1 to 0..1 in the env "
                          "(network range unchanged); yaw stays -1..1")

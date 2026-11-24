@@ -86,6 +86,93 @@ def cold_history(pose_recon: np.ndarray, scene: dict, k: int, use_recorded: bool
     return hist
 
 
+# ---- recording-like context poses (INTERP, 2026-11-24) -------------------------------
+# The video model was fine-tuned on walking clips: ~0.23 m and a few degrees between frames.
+# A turning robot's last five poses are up to 17 deg apart, a camera whip the model never saw,
+# and the last frame (the observation) comes out worse. With interp_history on, the four
+# CONTEXT poses are rebuilt along the robot's own recent path, spaced and turned like the
+# recording; the last pose stays exactly the current one. Coverage is unaffected (it reads
+# only the last pose).
+INTERP_PATH_LEN = 16          # robot poses kept per history (the path the context is cut from)
+
+
+def _rot_angle(Ra: np.ndarray, Rb: np.ndarray) -> float:
+    c = (float(np.trace(Ra.T @ Rb)) - 1.0) / 2.0
+    return float(np.arccos(np.clip(c, -1.0, 1.0)))
+
+
+def _rot_towards(Ra: np.ndarray, Rb: np.ndarray, t: float) -> np.ndarray:
+    """Rotation a fraction t of the way from Ra to Rb (geodesic)."""
+    Rr = Ra.T @ Rb
+    ang = _rot_angle(np.eye(3), Rr)
+    if ang < 1e-9 or t <= 0.0:
+        return Ra.copy()
+    if t >= 1.0:
+        return Rb.copy()
+    w = np.array([Rr[2, 1] - Rr[1, 2], Rr[0, 2] - Rr[2, 0], Rr[1, 0] - Rr[0, 1]])
+    n = np.linalg.norm(w)
+    if n < 1e-9:                                   # ~180 deg: any perpendicular axis
+        axis = np.linalg.svd(Rr - np.eye(3))[2][-1]
+    else:
+        axis = w / n
+    a = ang * t
+    Kx = np.array([[0, -axis[2], axis[1]], [axis[2], 0, -axis[0]], [-axis[1], axis[0], 0]])
+    return Ra @ (np.eye(3) + np.sin(a) * Kx + (1 - np.cos(a)) * (Kx @ Kx))
+
+
+def recording_spacing(scene: dict) -> tuple:
+    """(median step between recorded frames in recon units, median turn per frame in rad), cached."""
+    if "_interp_spacing" in scene:
+        return scene["_interp_spacing"]
+    c2w = scene["cam2world"]
+    c2w = c2w.detach().cpu().numpy() if hasattr(c2w, "detach") else np.asarray(c2w)
+    c2w = c2w.astype(np.float64)
+    steps = np.linalg.norm(np.diff(c2w[:, :3, 3], axis=0), axis=1)
+    turns = [_rot_angle(c2w[i, :3, :3], c2w[i + 1, :3, :3]) for i in range(len(c2w) - 1)]
+    out = (float(np.median(steps)) if len(steps) else 0.05,
+           max(float(np.median(turns)) if turns else 0.0, np.radians(1.0)))
+    scene["_interp_spacing"] = out
+    print(f"[interp] recording spacing: step {out[0]:.4f} recon units, turn {np.degrees(out[1]):.2f} deg per frame",
+          flush=True)
+    return out
+
+
+def respace_history(path: list, scene: dict, k: int) -> list:
+    """k poses ending at path[-1], walked back along `path` at the recording's spacing, each
+    context pose turned at most j x (recording's per-frame turn) away from the current heading."""
+    step, turn = recording_spacing(scene)
+    cur = np.asarray(path[-1], dtype=np.float64)
+    pts = [np.asarray(p, dtype=np.float64)[:3, 3] for p in reversed(path)]       # newest first
+    rots = [np.asarray(p, dtype=np.float64)[:3, :3] for p in reversed(path)]
+    # extend beyond the oldest pose so every target lies on the polyline: continue the oldest
+    # segment's direction, or (no motion at all, e.g. turning in place) straight back along the
+    # current camera axis -- the cold_history fallback
+    d = pts[-1] - pts[-2] if len(pts) >= 2 else np.zeros(3)
+    if np.linalg.norm(d) < 1e-9:
+        d = -cur[:3, 2]
+    d = d / max(np.linalg.norm(d), 1e-9)
+    pts.append(pts[-1] + d * step * (k + 1)); rots.append(rots[-1])
+    seg = [np.linalg.norm(pts[i + 1] - pts[i]) for i in range(len(pts) - 1)]
+    cum = np.concatenate([[0.0], np.cumsum(seg)])
+    out = []
+    for j in range(k - 1, 0, -1):
+        s = j * step
+        i = int(np.searchsorted(cum, s, side="left")) - 1
+        i = min(max(i, 0), len(seg) - 1)
+        while i < len(seg) - 1 and seg[i] < 1e-12:
+            i += 1
+        f = 0.0 if seg[i] < 1e-12 else float(np.clip((s - cum[i]) / seg[i], 0.0, 1.0))
+        pos = pts[i] + f * (pts[i + 1] - pts[i])
+        Rp = _rot_towards(rots[i], rots[i + 1], f)
+        ang = _rot_angle(cur[:3, :3], Rp)
+        cap = j * turn
+        R = _rot_towards(cur[:3, :3], Rp, 1.0 if ang <= cap else cap / ang)
+        p = cur.copy(); p[:3, :3] = R; p[:3, 3] = pos
+        out.append(p.astype(np.float32))
+    out.append(cur.astype(np.float32))
+    return out
+
+
 class LiveDiffusedBackend(CalibratedRealWorldBackend):
     """Per-action live generation with the semantic diffusion pipeline."""
 
@@ -126,6 +213,7 @@ class LiveDiffusedBackend(CalibratedRealWorldBackend):
         self._lora_rank = int(lora_rank)
         self._lora_targets = lora_target_modules
         self._pose_hist: list = []            # recon-frame c2w, newest last
+        self.interp_history = False           # set by the caller (INTERP); see respace_history
         self._pending_labels: Optional[np.ndarray] = None
         self.last_timings: dict = {}
 
@@ -249,10 +337,12 @@ class LiveDiffusedBackend(CalibratedRealWorldBackend):
             self._pose_hist = cold_history(pose_recon, scene, self.live_frames)
         else:
             self._pose_hist.append(pose_recon)
-            self._pose_hist = self._pose_hist[-self.live_frames:]
-        k = len(self._pose_hist)
+            self._pose_hist = self._pose_hist[-(INTERP_PATH_LEN if self.interp_history else self.live_frames):]
+        _clip = (respace_history(self._pose_hist, scene, self.live_frames) if self.interp_history
+                 else self._pose_hist)
+        k = len(_clip)
 
-        c2w = torch.from_numpy(np.stack(self._pose_hist)).to(
+        c2w = torch.from_numpy(np.stack(_clip)).to(
             device=device, dtype=scene["cam2world"].dtype)          # [k,4,4]
         w2c = homo_matrix_inverse(c2w)
         K_rep = scene["K"][0:1].repeat(k, 1, 1)

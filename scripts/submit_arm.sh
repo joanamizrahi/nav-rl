@@ -115,5 +115,9 @@ elif [ -n "$WARM" ] && [ ! -f "$WARM" ] && [ ! -L "$WARM" ] && [ ! -d "$WARM" ];
     echo "REFUSED: no such checkpoint or directory $WARM"; exit 1
 fi
 [ -n "$WARM" ] && [ -d "$WARM" ] && echo "    (directory: the newest ppo_*_steps.zip in it is chosen when the job starts)"
-if [ "$DRY" = 1 ]; then echo "    (dry run, nothing submitted)"; exit 0; fi
+if [ "$DRY" = 1 ]; then
+    echo "    --- arguments the job would pass (PRINTARGS) ---"
+    PRINTARGS=1 bash scripts/slurm/train_ppo_real.sh 2>&1 | grep -E "^(ARGS|OUT):" | fold -s -w 150 | sed 's/^/    /'
+    echo "    (dry run, nothing submitted)"; exit 0
+fi
 sbatch --gres=gpu:$GPUS --mem=$MEM --cpus-per-task=$CPUS --time=$TIME "${EXTRA[@]}" scripts/slurm/train_ppo_real.sh

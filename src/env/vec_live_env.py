@@ -55,7 +55,7 @@ class BatchedLiveDiffusedBackend(LiveDiffusedBackend):
         self.hist_jump_m = 0.5      # a pose jump beyond this drops the history (reset)
 
     def _robot_hist(self, robot_id: int, pose_recon: np.ndarray) -> list:
-        from .live_backend import cold_history
+        from .live_backend import cold_history, respace_history, INTERP_PATH_LEN
         hist = self._hists.get(robot_id, [])
         if hist:
             # 2026-09-06: the jump was compared in RECON UNITS against 0.5, but
@@ -74,8 +74,11 @@ class BatchedLiveDiffusedBackend(LiveDiffusedBackend):
             scene = self._cache.get(self._current_scene_id)
             hist = cold_history(pose_recon, scene, self.live_frames)
         else:
-            hist = (hist + [pose_recon])[-self.live_frames:]
+            _keep = INTERP_PATH_LEN if getattr(self, "interp_history", False) else self.live_frames
+            hist = (hist + [pose_recon])[-_keep:]
         self._hists[robot_id] = hist
+        if getattr(self, "interp_history", False):
+            return respace_history(hist, self._cache.get(self._current_scene_id), self.live_frames)
         return hist
 
     def render_batch(self, items: "list[tuple[int, np.ndarray]]"):
@@ -120,6 +123,11 @@ class BatchedLiveDiffusedBackend(LiveDiffusedBackend):
             _mpu = float(getattr(_cal, "scale", 1.0) or 1.0)
             _p = np.stack([h[:3, 3] for h in hists[0]])
             _d = np.linalg.norm(np.diff(_p, axis=0), axis=1) * _mpu
+            from .live_backend import _rot_angle
+            _turn = [np.degrees(_rot_angle(hists[0][i][:3, :3].astype(np.float64), hists[0][i + 1][:3, :3].astype(np.float64)))
+                     for i in range(len(hists[0]) - 1)]
+            print(f"[VecLiveEnv] generator clip turn per frame: max {max(_turn):.1f} deg "
+                  f"(interp_history={bool(getattr(self, 'interp_history', False))})", flush=True)
             print(f"[VecLiveEnv] generator clip of robot {items[0][0]}: {len(hists[0])} poses, "
                   f"spacing median {float(np.median(_d)):.2f} m (min {float(_d.min()):.2f}, max {float(_d.max()):.2f}) "
                   f"[render {self._hist_print_n}]", flush=True)

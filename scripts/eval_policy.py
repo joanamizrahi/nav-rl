@@ -154,6 +154,7 @@ def build_env(args):
             alpha_gate=not args.no_alpha_gate,
             alpha_gate_tau=float(getattr(args, "alpha_gate_tau", None) or 0.5),
             raster_obs=bool(getattr(args, "raster_obs", False)))
+        world.interp_history = bool(getattr(args, "interp_history", False))
     elif args.obs_cache:
         from src.env.cached_backend import CachedDiffusedBackend
         world = CachedDiffusedBackend(cfg, args.obs_cache,
@@ -543,6 +544,8 @@ def main():
     ap.add_argument("--yaw_step_rad", type=float, default=0.5,
                     help="radians per unit yaw action — MUST match training "
                          "(J arms: 0.5)")
+    ap.add_argument("--interp_history", action="store_true",
+                    help="adopted from the run's env_config.json; set only to force it")
     ap.add_argument("--throttle01", action="store_true",
                     help="adopted from the run's env_config.json; set only to force it")
     ap.add_argument("--forward_only", action="store_true",
@@ -671,7 +674,7 @@ def main():
             _dest = {"collision_look_ahead_m": "collision_look_ahead",
                      "goal_support_radius_m": "goal_support_radius"}
             args._adopted = {}
-            for _k in ("step_size_m", "yaw_step_rad", "forward_only", "throttle01",
+            for _k in ("step_size_m", "yaw_step_rad", "forward_only", "throttle01", "interp_history",
                        "look_ahead_dist", "goal_radius", "collision_threshold",
                        "collision_terminate_frac", "collision_terminate_penalty", "phantom_veto",
                        "action_chunk",

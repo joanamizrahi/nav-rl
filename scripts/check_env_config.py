@@ -23,6 +23,8 @@ EXPECT = {                                                # key -> value the arm
     "b1_maplabels": {"throttle01": True, "reward_source": "map"},
     "b1_nomem":     {"throttle01": True, "collision_box_memory": 0},
     "b1_noprox":    {"throttle01": True, "proximity_weight": 0.0, "proximity_ground_weight": 0.0},
+    "b1_interp":    {"throttle01": True, "interp_history": True},
+    "b1_interp_nocov": {"throttle01": True, "interp_history": True, "coherence_cost_weight": 0.0, "coherence_terminate_tau": 0.0},
 }
 
 def main():
