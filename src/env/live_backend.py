@@ -121,7 +121,7 @@ def _rot_towards(Ra: np.ndarray, Rb: np.ndarray, t: float) -> np.ndarray:
 
 
 def recording_spacing(scene: dict) -> tuple:
-    """(median step between recorded frames in recon units, median turn per frame in rad), cached."""
+    """(median step between recorded frames in recon units, 90th-percentile turn per frame in rad), cached."""
     if "_interp_spacing" in scene:
         return scene["_interp_spacing"]
     c2w = scene["cam2world"]
@@ -129,10 +129,13 @@ def recording_spacing(scene: dict) -> tuple:
     c2w = c2w.astype(np.float64)
     steps = np.linalg.norm(np.diff(c2w[:, :3, 3], axis=0), axis=1)
     turns = [_rot_angle(c2w[i, :3, :3], c2w[i + 1, :3, :3]) for i in range(len(c2w) - 1)]
+    # turn cap: the 90th percentile of the recording's per-frame turns, i.e. how fast the
+    # recording turns at its corners (the median is mostly straight walking and would leave the
+    # context of a turning robot nearly un-turned). Floor 1 deg. (Joana, 2026-11-24)
     out = (float(np.median(steps)) if len(steps) else 0.05,
-           max(float(np.median(turns)) if turns else 0.0, np.radians(1.0)))
+           max(float(np.percentile(turns, 90)) if turns else 0.0, np.radians(1.0)))
     scene["_interp_spacing"] = out
-    print(f"[interp] recording spacing: step {out[0]:.4f} recon units, turn {np.degrees(out[1]):.2f} deg per frame",
+    print(f"[interp] recording spacing: step {out[0]:.4f} recon units, turn cap {np.degrees(out[1]):.2f} deg per frame (p90)",
           flush=True)
     return out
 
