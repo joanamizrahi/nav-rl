@@ -82,4 +82,6 @@ for S in $SCENES; do
     sbatch --export=ALL scripts/slurm/eval_policy.sh >/dev/null 2>&1 \
         && echo "        submitted" || echo "        LIMIT REACHED -- retry later"
 done
-[ "$DRY" = "1" ] && echo "    (dry run: nothing submitted)"
+if [ "$DRY" = "1" ]; then echo "    (dry run: nothing submitted)"; fi
+exit 0   # 2026-11-24: the old last line `[ ... ] && echo` made every real submission exit 1, which
+         # stopped any caller chaining with && or running under set -e after the first call
