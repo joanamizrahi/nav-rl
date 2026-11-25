@@ -12,7 +12,9 @@ The camera is b's own reconstructed camera (pixel-aligned with the real frame an
 history is the 4 recorded frames before b, as a robot walking the path would have.
 
 Writes to --out:
-  queries.csv          idx, base_frame, side (in|behind|ahead), gap, win_lo, win_hi, dist_m (b to nearest kept frame), coverage
+  queries.csv          idx, base_frame, side (in|behind|ahead), gap, win_lo, win_hi, dist_m (b to nearest kept frame),
+                       turn_deg (b's heading vs the closest-facing kept frame), lat_m (b sideways of the nearest kept frame), coverage
+  (the walks' own turns give TURNED and SIDEWAYS views with a real frame; scripts/turn_survey.py: gaps 10-30 needed)
   semantic_labels.npz  generated labels [N,H,W] int8       gt_labels.npz  SAM 3 labels of real frame b [N,H,W]
   hint_labels.npz      rasterized labels from the window    alpha.npz      window opacity [N,H,W]
   frames/q_%04d.png    generated RGB      gt/q_%04d.png  the real frame     raster/q_%04d.png  rasterized colour
@@ -57,7 +59,7 @@ def main():
     ap.add_argument("--width", type=int, default=560); ap.add_argument("--height", type=int, default=336)
     ap.add_argument("--base_every", type=int, default=4)
     ap.add_argument("--base_lo", type=int, default=6); ap.add_argument("--base_hi", type=int, default=74)
-    ap.add_argument("--gaps", default="1,2,3,4,6,8,10,13,16", help="frames between b and the nearest window frame")
+    ap.add_argument("--gaps", default="1,2,3,4,6,8,10,13,16,20,25,30", help="frames between b and the nearest window frame")
     ap.add_argument("--sides", default="behind,ahead")
     ap.add_argument("--min_frames", type=int, default=8, help="skip a query whose window keeps fewer recorded frames")
     args = ap.parse_args()
@@ -80,6 +82,18 @@ def main():
     sc = world._cache[args.scene]; cal = world._calib[args.scene]
     raster = world._reconstructor.gs_renderer.rasterizer
     pos = np.asarray(cal.positions)[:, :2]
+    hd = np.asarray(cal.headings)[:, :2]; yaw = np.degrees(np.arctan2(hd[:, 1], hd[:, 0]))
+
+    def turn_lat(b, lo, hi):
+        """turn_deg: smallest heading difference between b and any kept frame (how far b looks away from everything
+        the window faced); lat_m: b's sideways offset from the nearest kept frame, across that frame's heading."""
+        if lo is None:
+            return 0.0, 0.0
+        W = np.arange(lo, hi + 1)
+        t = float(np.abs(((yaw[b] - yaw[W] + 180) % 360) - 180).min())
+        f = W[np.argmin(np.linalg.norm(pos[W] - pos[b], axis=1))]
+        h = hd[f] / max(np.linalg.norm(hd[f]), 1e-9); v = pos[b] - pos[f]
+        return t, float(abs(h[0] * v[1] - h[1] * v[0]))
     c2w_all = sc["cam2world"].detach().cpu().numpy() if hasattr(sc["cam2world"], "detach") else np.asarray(sc["cam2world"])
     nrec = int(args.num_frames)                      # cameras 0..80 are the clip frames (pano side views follow)
 
@@ -136,8 +150,10 @@ def main():
         near = b if lo is None else (hi if side == "behind" else lo)      # nearest window frame
         dist = float(np.linalg.norm(pos[near] - pos[b]))
         preds.append(pred); hints.append(hint); alphas.append(alpha.astype(np.float16)); gts.append(gt_lab[b].astype(np.int8))
-        rows.append((qi, b, side, gap, -1 if lo is None else lo, -1 if hi is None else hi, dist, cov))
-        print(f"  q{qi:04d} base {b:2d} {side:6s} gap {gap:2d} (nearest kept frame {dist:4.1f} m)  cov {cov:.2f}", flush=True)
+        tdeg, lat = turn_lat(b, lo, hi)
+        rows.append((qi, b, side, gap, -1 if lo is None else lo, -1 if hi is None else hi, dist, tdeg, lat, cov))
+        print(f"  q{qi:04d} base {b:2d} {side:6s} gap {gap:2d} (nearest kept frame {dist:4.1f} m, turned {tdeg:3.0f} deg, "
+              f"sideways {lat:3.1f} m)  cov {cov:.2f}", flush=True)
     window_mod.RANGE = None
 
     np.savez_compressed(args.out / "semantic_labels.npz", labels=np.stack(preds))
@@ -145,9 +161,9 @@ def main():
     np.savez_compressed(args.out / "gt_labels.npz", labels=np.stack(gts))
     np.savez_compressed(args.out / "alpha.npz", alpha=np.stack(alphas))
     with open(args.out / "queries.csv", "w") as fh:
-        fh.write("idx,base_frame,side,gap,win_lo,win_hi,dist_m,coverage\n")
+        fh.write("idx,base_frame,side,gap,win_lo,win_hi,dist_m,turn_deg,lat_m,coverage\n")
         for r in rows:
-            fh.write(f"{r[0]},{r[1]},{r[2]},{r[3]},{r[4]},{r[5]},{r[6]:.3f},{r[7]:.4f}\n")
+            fh.write(f"{r[0]},{r[1]},{r[2]},{r[3]},{r[4]},{r[5]},{r[6]:.3f},{r[7]:.1f},{r[8]:.3f},{r[9]:.4f}\n")
     print(f"[heldout] wrote {args.out} ({len(queries)} queries) -> grade_heldout.py --sweep {args.out}")
 
 

@@ -58,6 +58,14 @@ def main():
         m = (side == sd) & (r["gap"] == g)
         print(f"  {sd:6s} gap {g:2.0f}: n {m.sum():3d}  coverage {np.nanmean(r['coverage'][m]):.2f}  walkable acc {np.nanmean(r['acc_trav'][m]):.3f}"
               f"  ahead {np.nanmean(r['acc_trav_ahead'][m]):.3f}  hint(seen) {np.nanmean(r['hint_trav_seen'][m]):.3f}")
+    cov = r["coverage"]; acc_ = r["acc_trav"]
+    print("  by coverage:   " + "  ".join(f"{lo:.1f}-{lo + 0.1:.1f}: {np.nanmean(acc_[(cov >= lo) & (cov < lo + 0.1)]):.2f} (n {((cov >= lo) & (cov < lo + 0.1)).sum()})"
+                                      for lo in np.arange(0, 1.0, 0.1) if ((cov >= lo) & (cov < lo + 0.1)).sum()))
+    if "turn_deg" in rows[0]:
+        tu = np.array([float(x["turn_deg"]) for x in rows]); la = np.array([float(x["lat_m"]) for x in rows])
+        for nm, v, edges in (("turned (deg)", tu, [0, 10, 20, 45, 90, 181]), ("sideways (m)", la, [0, 0.25, 0.5, 1, 2, 99])):
+            print(f"  by {nm}: " + "  ".join(f"{a}-{b}: acc {np.nanmean(acc_[(v >= a) & (v < b)]):.2f} cov {np.nanmean(cov[(v >= a) & (v < b)]):.2f} (n {((v >= a) & (v < b)).sum()})"
+                                           for a, b in zip(edges[:-1], edges[1:]) if ((v >= a) & (v < b)).sum()))
     print("wrote", d / "graded.csv")
 
 

@@ -5,7 +5,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=96G
-#SBATCH --time=01:00:00
+#SBATCH --time=01:30:00
 #SBATCH --output=/scratch/m000204-pm07b/joana/slurm-heldout-sweep-%j.out
 #SBATCH --error=/scratch/m000204-pm07b/joana/slurm-heldout-sweep-%j.err
 #SBATCH --exclude=n04,n13,n17,n18,n24
@@ -28,7 +28,7 @@ OUTROOT=${OUTROOT:-$S/outputs/heldout_gaps_v35b}
 LIVECKPT=${LIVECKPT:-$S/runs/train_semantic_v35b_p6_ppl5/checkpoint-epoch-3.safetensors}
 SEMPAL=${SEMPAL:-6}
 RENDWIN=${RENDWIN:-21}; COVWIN=${COVWIN:-21}
-GAPS=${GAPS:-1,2,3,4,6,8,10,13,16}
+GAPS=${GAPS:-1,2,3,4,6,8,10,13,16,20,25,30}
 mkdir -p "$OUTROOT"
 nvidia-smi -L || true
 echo "==> scenes: $SCENES | ckpt: $(basename "$LIVECKPT") pal $SEMPAL | win $RENDWIN/$COVWIN | gaps $GAPS"
