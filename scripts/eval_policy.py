@@ -971,7 +971,7 @@ def main():
         # 5 fields, matching every later row: [x, y, yaw, collision_frac,
         # dominant_class]. It used to be 4 here and 5 below, which made `traj`
         # ragged and np.array() on it raise (2026-09-03).
-        traj = [_pose_xyyaw(env) + [0.0, -1]]
+        traj = [_pose_xyyaw(env) + [0.0, -1, None]]   # [x, y, yaw, collision_frac, dominant_class, coverage]
         done, steps, collided, total_r = False, 0, 0, 0.0
         ground_counts: dict = {}
         # 2026-09-02: a bare success=False conflated "crashed at step 8",
@@ -1079,7 +1079,7 @@ def main():
             # (the sidewalk-preference metric, 2026-08-28)
             gc = int(info.get("dominant_class_id", -1))
             ground_counts[gc] = ground_counts.get(gc, 0) + 1
-            traj.append(_pose_xyyaw(env) + [frac, gc])
+            traj.append(_pose_xyyaw(env) + [frac, gc, round(_c, 4) if _c == _c else None])   # 6th field: coverage C_w (2026-11-24)
             done = term or trunc
         d_final = float(info.get("dist_to_goal", -1))
         if args.expert == "path" and args.path_frames and _ep_frames["rgb"]:
