@@ -65,6 +65,9 @@ def main():
     ap.add_argument("--base_lo", type=int, default=10); ap.add_argument("--base_hi", type=int, default=70)
     ap.add_argument("--lat_max", type=float, default=2.0); ap.add_argument("--lat_step", type=float, default=0.2)
     ap.add_argument("--yaw_max", type=float, default=90.0); ap.add_argument("--yaw_step", type=float, default=10.0)
+    ap.add_argument("--seeds", type=int, default=1,
+                    help="2026-11-24: generate every query with this many noise seeds (same pose, same history); "
+                         "seed 0 is the one saved as frames/ and semantic_labels.npz, the rest go to seed_labels.npz")
     ap.add_argument("--history", choices=["gradual", "cold"], default="gradual",
                     help="clip history for each query: 4 poses stepping from the base pose to the query (as a robot would), or the cold recorded-frame history")
     args = ap.parse_args()
@@ -104,6 +107,8 @@ def main():
 
     args.out.mkdir(parents=True, exist_ok=True); (args.out / "frames").mkdir(exist_ok=True); (args.out / "raster").mkdir(exist_ok=True); (args.out / "raster_depth").mkdir(exist_ok=True)
     preds, alphas, hints, gens, covs = [], [], [], [], []
+    seed_preds = [[] for _ in range(max(0, int(args.seeds) - 1))]
+    Ks, W2Cs = [], []
     for qi, (b, kind, o, sgn) in enumerate(queries):
         yaw0 = float(yaw_rec[b]); x0, y0 = float(pos[b, 0]), float(pos[b, 1])
         if kind == "lat":
@@ -128,8 +133,17 @@ def main():
                 world._pose_hist.append(pr.astype(np.float32))
         else:
             world._pose_hist = []
+        _hist_q = list(world._pose_hist)
+        world.gen_seed = 0
         gen_rgb, K, w2c = world.render(pose)
         pred = np.asarray(world._last_semantic_raw)
+        _hist_after = list(world._pose_hist)
+        Ks.append(np.asarray(K, np.float32)); W2Cs.append(np.asarray(w2c, np.float32))     # nav frame, ground z = 0
+        for _s in range(1, int(args.seeds)):                  # same pose and history, other noise
+            world._pose_hist = list(_hist_q); world.gen_seed = _s
+            world.render(pose)
+            seed_preds[_s - 1].append(np.asarray(world._last_semantic_raw).astype(np.int8))
+        world._pose_hist = _hist_after; world.gen_seed = 0
         pose_recon, t_idx = world._pose_nav_to_recon(pose)
         w2c_r, K1, ts1 = world._single_frame_inputs(sc, pose_recon, t_idx)
         with torch.no_grad():
@@ -168,6 +182,9 @@ def main():
         print(f"  q{qi:04d} base {b:2d} {kind} {sgn * o:+6.2f}  cov {covs[-1]:.2f}", flush=True)
 
     np.savez_compressed(args.out / "semantic_labels.npz", labels=np.stack(preds))
+    np.savez_compressed(args.out / "cameras.npz", K=np.stack(Ks), w2c=np.stack(W2Cs))
+    if seed_preds:
+        np.savez_compressed(args.out / "seed_labels.npz", labels=np.stack([np.stack(l) for l in seed_preds]))
     np.savez_compressed(args.out / "hint_labels.npz", labels=np.stack(hints))
     np.savez_compressed(args.out / "alpha.npz", alpha=np.stack(alphas))
     with open(args.out / "queries.csv", "w") as fh:

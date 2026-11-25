@@ -417,7 +417,7 @@ class LiveDiffusedBackend(CalibratedRealWorldBackend):
                 generated = pipe(
                     prompt=self.cfg.prompt,
                     negative_prompt=self.cfg.negative_prompt,
-                    seed=0, rand_device=device,
+                    seed=int(getattr(self, "gen_seed", 0)), rand_device=device,   # 0 = training; consistency_sweep varies it
                     height=self.H, width=self.W, num_frames=k,
                     cfg_scale=self.cfg.cfg_scale,
                     num_inference_steps=4 if self.cfg.use_lora else 50,
