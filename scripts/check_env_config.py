@@ -11,6 +11,13 @@ from pathlib import Path
 
 REF = Path(__file__).resolve().parents[1] / "configs/reference/env_config_paper_j503294.json"
 IGNORE = {"warmstart", "spawn_frames", "live_ckpt"}     # paths and derived lists, not settings
+# settings that do nothing while another one is off: a difference there is reported but not a failure
+INACTIVE = {
+    "goal_turn_from": lambda r: not r.get("goal_turn_deg") and not r.get("goal_turn_mix"),   # corner rule off
+    "goal_turn_beyond_m": lambda r: not r.get("goal_turn_deg") and not r.get("goal_turn_mix"),
+    "rgb_align_tau": lambda r: not r.get("rgb_align_cost_weight"),                            # RGB-drift cost off
+    "disagree_frac": lambda r: not r.get("disagree_cost_weight"),                             # disagreement cost off
+}
 EXPECT = {                                                # key -> value the arm must produce
     "b1":           {"throttle01": True},
     "b1_s1":        {"throttle01": True},
@@ -45,6 +52,9 @@ def main():
         elif a != b:
             if a == "<absent>" and b in (False, 0, 0.0, None, ""):
                 continue                                  # a key added after the paper run, at its off value
+            if k in INACTIVE and INACTIVE[k](run) and INACTIVE[k](ref):
+                print(f"inactive    {k}: paper {a!r}, run {b!r} (has no effect: its switch is off in both)")
+                continue
             print(f"UNEXPECTED  {k}: paper {a!r}, run {b!r}"); ok = False
     print("PASS" if ok else "FAIL")
     sys.exit(0 if ok else 1)
