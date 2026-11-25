@@ -11,6 +11,9 @@ Output <sweep_root>/<scene>/consistency.csv, one row per view:
                    same series (sideways k-1 m, or the previous turn step), same label in both; NaN for the first view
   nb_sam3          the same with SAM 3's labels, on points SAM 3 labelled in both views
   nb_points        how many shared ground points the neighbour measure used
+  mix_ours/mix_sam3  scene-content consistency over the WHOLE image (no point matching): share of each class in this
+                   view vs the previous view of the series, 1 - total variation distance (1 = same class mix);
+                   SAM 3 version over SAM 3's labelled pixels only
   all_ours/all_sam3  the same against EVERY earlier view of the series (drift, not only flicker): each earlier view
                    sharing >= MIN_SHARED ground points counts, weighted by its shared points; all_points = their sum
   + coverage and the September columns (hint_pix, agree_pix, align) copied from grade/queries_graded.csv
@@ -64,6 +67,18 @@ def project(P, K, w2c, H, W):
     return ok, vb, ub
 
 
+def class_mix(lab, valid=False, n=14):
+    v = lab[lab > 0] if valid else lab.ravel()
+    if v.size == 0:
+        return None
+    return np.bincount(np.clip(v, 0, n - 1), minlength=n) / v.size
+
+
+def mix_consistency(labA, labB, valid=False):
+    a, b = class_mix(labA, valid), class_mix(labB, valid)
+    return np.nan if a is None or b is None else float(1.0 - 0.5 * np.abs(a - b).sum())
+
+
 def neighbour(labA, labB, KA, wA, KB, wB, H, W, valid=None):
     P, va, ua = ground_points(labA, KA, wA, H, W)
     if P.shape[1] == 0:
@@ -114,6 +129,9 @@ def main():
             if kind == "yaw" and j is None:
                 j = prev.get((b, "lat0"))
             if j is not None:
+                r["mix_ours"] = mix_consistency(L0[j], L0[i])
+                if S3 is not None:
+                    r["mix_sam3"] = mix_consistency(S3[j], S3[i], valid=True)
                 r["nb_ours"], r["nb_points"] = neighbour(L0[j], L0[i], K[j], Wc[j], K[i], Wc[i], H, W)
                 if S3 is not None:
                     r["nb_sam3"], _ = neighbour(S3[j], S3[i], K[j], Wc[j], K[i], Wc[i], H, W, valid=True)
@@ -141,7 +159,7 @@ def main():
                 r[c] = float(g[c]) if c in g and g[c] not in ("", "nan") else np.nan
             rows[i] = r
         cols = ["idx", "base_frame", "kind", "offset", "coverage", "seed_dis_class", "seed_dis_trav",
-                "nb_ours", "nb_sam3", "nb_points", "all_ours", "all_sam3", "all_points", "hint_pix", "agree_pix", "align"]
+                "nb_ours", "nb_sam3", "nb_points", "mix_ours", "mix_sam3", "all_ours", "all_sam3", "all_points", "hint_pix", "agree_pix", "align"]
         with open(sd / "consistency.csv", "w", newline="") as f:
             w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore"); w.writeheader()
             for i in sorted(rows):
