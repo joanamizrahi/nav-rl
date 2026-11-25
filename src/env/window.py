@@ -28,11 +28,11 @@ from typing import List
 
 _warned = set()
 
-# HELD-OUT SHIFT (2026-11-25, Jing's held-out test, scripts/heldout_sweep.py): the window is centred on
-# t_idx + SHIFT instead of t_idx. With |SHIFT| > window // 2 the query frame's own Gaussians are left out,
-# so a render at a recorded camera can be compared with that real frame. 0 = the normal centred window;
-# training and evaluation never set it.
-SHIFT = 0
+# HELD-OUT RANGE (2026-11-25, Jing's held-out test, scripts/heldout_sweep.py): when set to (lo, hi), the window
+# keeps source frames lo..hi (inclusive) instead of the frames around t_idx, so a render at a recorded camera can
+# leave that frame out and be compared with the real frame. None = the normal centred window; training and
+# evaluation never set it.
+RANGE = None
 
 
 def window_gaussians(batch_gaussians: list, t_idx: int, window: int) -> list:
@@ -47,7 +47,7 @@ def window_gaussians(batch_gaussians: list, t_idx: int, window: int) -> list:
     if window is None or window <= 0:
         return list(batch_gaussians)
     half = max(int(window) // 2, 0)
-    lo, hi = t_idx + SHIFT - half, t_idx + SHIFT + half
+    lo, hi = (t_idx - half, t_idx + half) if RANGE is None else (int(RANGE[0]), int(RANGE[1]))
     out: List = []
     for g in batch_gaussians:
         ts = int(getattr(g, "timestamp", -1))

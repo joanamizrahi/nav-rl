@@ -11,7 +11,7 @@
 #SBATCH --exclude=n04,n13,n17,n18,n24
 # HELD-OUT SWEEP (2026-11-25, Jing's idea): render at recorded cameras from a window of OTHER frames and grade
 # against the real frame (scripts/heldout_sweep.py, grade_heldout.py). Stages: [1] render (neoverse env)  [2] grade.
-# Knobs: SCENES (required), LIVECKPT, SEMPAL, RENDWIN, COVWIN, SHIFTS, BASE_EVERY (4), BASE_LO (6), BASE_HI (74), OUTROOT.
+# Knobs: SCENES (required), LIVECKPT, SEMPAL, RENDWIN, COVWIN, GAPS, BASE_EVERY (4), BASE_LO (6), BASE_HI (74), OUTROOT.
 set -uo pipefail
 if command -v module >/dev/null 2>&1; then
     module load conda/24.3.0-0
@@ -24,14 +24,14 @@ S=${SCRATCH_ROOT:-/scratch/m000204-pm07b/joana}
 CLIPS=${CLIPS_DIR:-$S/data/campus_clips}
 POSES=${POSES_DIR:-$S/outputs/poses}
 LABELS=${LABELS_DIR:-$S/NeoVerse/outputs/sam3_labels_v14}
-OUTROOT=${OUTROOT:-$S/outputs/heldout_v35b}
+OUTROOT=${OUTROOT:-$S/outputs/heldout_gaps_v35b}
 LIVECKPT=${LIVECKPT:-$S/runs/train_semantic_v35b_p6_ppl5/checkpoint-epoch-3.safetensors}
 SEMPAL=${SEMPAL:-6}
 RENDWIN=${RENDWIN:-21}; COVWIN=${COVWIN:-21}
-SHIFTS=${SHIFTS:-0,-12,-16,-20,-28,12,16,20,28,36}
+GAPS=${GAPS:-1,2,3,4,6,8,10,13,16}
 mkdir -p "$OUTROOT"
 nvidia-smi -L || true
-echo "==> scenes: $SCENES | ckpt: $(basename "$LIVECKPT") pal $SEMPAL | win $RENDWIN/$COVWIN | shifts $SHIFTS"
+echo "==> scenes: $SCENES | ckpt: $(basename "$LIVECKPT") pal $SEMPAL | win $RENDWIN/$COVWIN | gaps $GAPS"
 for s in $SCENES; do
     out="$OUTROOT/$s"
     if [ -f "$out/queries.csv" ] && [ -f "$out/semantic_labels.npz" ]; then
@@ -39,7 +39,7 @@ for s in $SCENES; do
     else
         (export PATH=$NEO_ENV:$PATH; hash -r; cd $S/nav-rl && python scripts/heldout_sweep.py --scene "$s" \
             --clips_dir "$CLIPS" --poses_dir "$POSES" --labels_dir "$LABELS" --live_ckpt "$LIVECKPT" \
-            --sem_palette "$SEMPAL" --render_window "$RENDWIN" --coverage_window "$COVWIN" --shifts "$SHIFTS" \
+            --sem_palette "$SEMPAL" --render_window "$RENDWIN" --coverage_window "$COVWIN" --gaps "$GAPS" \
             --base_every "${BASE_EVERY:-4}" --base_lo "${BASE_LO:-6}" --base_hi "${BASE_HI:-74}" --out "$out") \
             || { echo "!!! stage1 FAILED: $s"; continue; }
     fi

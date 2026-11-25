@@ -52,10 +52,11 @@ def main():
     cols = list(rows[0])
     with open(d / "graded.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=cols); w.writeheader(); w.writerows(rows)
-    r = {k: np.array([float(x[k]) for x in rows]) for k in ("shift", "coverage", "acc_trav", "acc_trav_ahead", "hint_trav_seen")}
-    for s in sorted(set(r["shift"])):
-        m = r["shift"] == s
-        print(f"  shift {s:+4.0f}: n {m.sum():3d}  coverage {np.nanmean(r['coverage'][m]):.2f}  walkable acc {np.nanmean(r['acc_trav'][m]):.3f}"
+    r = {k: np.array([float(x[k]) for x in rows]) for k in ("gap", "coverage", "acc_trav", "acc_trav_ahead", "hint_trav_seen")}
+    side = np.array([x["side"] for x in rows])
+    for sd, g in sorted({(a, b) for a, b in zip(side, r["gap"])}, key=lambda x: (["in", "behind", "ahead"].index(x[0]), x[1])):
+        m = (side == sd) & (r["gap"] == g)
+        print(f"  {sd:6s} gap {g:2.0f}: n {m.sum():3d}  coverage {np.nanmean(r['coverage'][m]):.2f}  walkable acc {np.nanmean(r['acc_trav'][m]):.3f}"
               f"  ahead {np.nanmean(r['acc_trav_ahead'][m]):.3f}  hint(seen) {np.nanmean(r['hint_trav_seen'][m]):.3f}")
     print("wrote", d / "graded.csv")
 

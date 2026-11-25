@@ -1,16 +1,18 @@
 """Held-out sweep (2026-11-25, Jing's idea for the threshold question): render AT a recorded camera, but from a
 window of OTHER recorded frames, so the real frame is ground truth for what the world model had to invent.
 
-For base frames b (every --base_every-th of the clip) and window shifts s (in frames), the fusion window is centred
-on b + s instead of b (src/env/window.py SHIFT). s = 0 is the in-sample control (frame b's own Gaussians are in).
-With |s| > window // 2 frame b is left out:
-  s < 0  window BEHIND b: those frames also looked forward, so most of b's view was seen -> high coverage
-  s > 0  window AHEAD of b: they look further on; the ground just in front of b's camera was never seen -> low
+For base frames b (every --base_every-th of the clip) the fusion window is ONE-SIDED and never contains b
+(src/env/window.py RANGE), starting next to b and moving away in small steps (Joana: no big jumps):
+  behind, gap g: frames b-g-(w-1) .. b-g        ahead, gap g: frames b+g .. b+g+(w-1)
+plus the in-sample control (side "in", gap 0: the normal centred window, frame b included).
+quad2_01 test (job 606911, centred shifts of 12-36 frames): behind windows lose coverage FASTER than ahead ones
+(far frames see b's ground only as sparse dark speckles that still count as coverage and the model paints them in
+as dark ground); ahead windows miss only the near ground, and at +28/+36 the model invented a car interior.
 The camera is b's own reconstructed camera (pixel-aligned with the real frame and its SAM 3 labels); the clip
 history is the 4 recorded frames before b, as a robot walking the path would have.
 
 Writes to --out:
-  queries.csv          idx, base_frame, shift, dist_m (base to window centre), coverage
+  queries.csv          idx, base_frame, side (in|behind|ahead), gap, win_lo, win_hi, dist_m (b to nearest kept frame), coverage
   semantic_labels.npz  generated labels [N,H,W] int8       gt_labels.npz  SAM 3 labels of real frame b [N,H,W]
   hint_labels.npz      rasterized labels from the window    alpha.npz      window opacity [N,H,W]
   frames/q_%04d.png    generated RGB      gt/q_%04d.png  the real frame     raster/q_%04d.png  rasterized colour
@@ -55,8 +57,8 @@ def main():
     ap.add_argument("--width", type=int, default=560); ap.add_argument("--height", type=int, default=336)
     ap.add_argument("--base_every", type=int, default=4)
     ap.add_argument("--base_lo", type=int, default=6); ap.add_argument("--base_hi", type=int, default=74)
-    ap.add_argument("--shifts", default="0,-12,-16,-20,-28,12,16,20,28,36",
-                    help="window centre minus base frame, in frames; |s| > window//2 leaves the base frame out")
+    ap.add_argument("--gaps", default="1,2,3,4,6,8,10,13,16", help="frames between b and the nearest window frame")
+    ap.add_argument("--sides", default="behind,ahead")
     ap.add_argument("--min_frames", type=int, default=8, help="skip a query whose window keeps fewer recorded frames")
     args = ap.parse_args()
     import cv2, torch
@@ -93,21 +95,24 @@ def main():
         dup = [b for b in range(nrec) if (np.linalg.norm(c2w_all[nrec:, :3, 3] - c2w_all[b, :3, 3], axis=1) < 1e-6).any()]
         print(f"[heldout] {len(c2w_all) - nrec} pano side cameras; {len(dup)} clip frames share a position with one "
               f"(first {dup[:5]}) -- window centre may follow the side view there", flush=True)
-    half = int(args.render_window) // 2
-    shifts = [int(s) for s in args.shifts.split(",")]
-    queries = []
+    w = int(args.render_window); half = w // 2
+    gaps = [int(g) for g in args.gaps.split(",")]; sides = args.sides.split(",")
+    queries = []                                     # (b, side, gap, lo, hi)
     for b in range(int(args.base_lo), min(int(args.base_hi), nrec - 1) + 1, int(args.base_every)):
-        for s in shifts:
-            c = b + s; kept = max(0, min(c + half, nrec - 1) - max(c - half, 0) + 1)
-            if kept >= int(args.min_frames):
-                queries.append((b, s))
-    print(f"[heldout] {args.scene}: {len(queries)} queries (window {args.render_window}, shifts {shifts})", flush=True)
+        queries.append((b, "in", 0, None, None))
+        for side in sides:
+            for g in gaps:
+                lo, hi = (b - g - (w - 1), b - g) if side == "behind" else (b + g, b + g + (w - 1))
+                lo, hi = max(lo, 0), min(hi, nrec - 1)
+                if hi - lo + 1 >= int(args.min_frames):
+                    queries.append((b, side, g, lo, hi))
+    print(f"[heldout] {args.scene}: {len(queries)} queries (window {w}, sides {sides}, gaps {gaps})", flush=True)
 
     for d in ("frames", "gt", "raster"):
         (args.out / d).mkdir(parents=True, exist_ok=True)
     preds, hints, alphas, gts, rows = [], [], [], [], []
-    for qi, (b, s) in enumerate(queries):
-        window_mod.SHIFT = int(s)
+    for qi, (b, side, gap, lo, hi) in enumerate(queries):
+        window_mod.RANGE = None if lo is None else (lo, hi)
         pose_recon = c2w_all[b].astype(np.float32)
         world._pose_hist = []                         # -> cold_history: the 4 recorded frames before b
         world.gen_seed = 0
@@ -128,20 +133,21 @@ def main():
         cv2.imwrite(str(args.out / "frames" / f"q_{qi:04d}.png"), g[:, :, ::-1])
         im = real[b]; im = np.asarray(im.convert("RGB")) if hasattr(im, "convert") else np.asarray(im)[..., :3]
         cv2.imwrite(str(args.out / "gt" / f"q_{qi:04d}.png"), im[:, :, ::-1])
-        dist = float(np.linalg.norm(pos[min(max(b + s, 0), nrec - 1)] - pos[b]))
+        near = b if lo is None else (hi if side == "behind" else lo)      # nearest window frame
+        dist = float(np.linalg.norm(pos[near] - pos[b]))
         preds.append(pred); hints.append(hint); alphas.append(alpha.astype(np.float16)); gts.append(gt_lab[b].astype(np.int8))
-        rows.append((qi, b, s, dist, cov))
-        print(f"  q{qi:04d} base {b:2d} shift {s:+3d} ({dist:4.1f} m)  cov {cov:.2f}", flush=True)
-    window_mod.SHIFT = 0
+        rows.append((qi, b, side, gap, -1 if lo is None else lo, -1 if hi is None else hi, dist, cov))
+        print(f"  q{qi:04d} base {b:2d} {side:6s} gap {gap:2d} (nearest kept frame {dist:4.1f} m)  cov {cov:.2f}", flush=True)
+    window_mod.RANGE = None
 
     np.savez_compressed(args.out / "semantic_labels.npz", labels=np.stack(preds))
     np.savez_compressed(args.out / "hint_labels.npz", labels=np.stack(hints))
     np.savez_compressed(args.out / "gt_labels.npz", labels=np.stack(gts))
     np.savez_compressed(args.out / "alpha.npz", alpha=np.stack(alphas))
     with open(args.out / "queries.csv", "w") as fh:
-        fh.write("idx,base_frame,shift,dist_m,coverage\n")
+        fh.write("idx,base_frame,side,gap,win_lo,win_hi,dist_m,coverage\n")
         for r in rows:
-            fh.write(f"{r[0]},{r[1]},{r[2]},{r[3]:.3f},{r[4]:.4f}\n")
+            fh.write(f"{r[0]},{r[1]},{r[2]},{r[3]},{r[4]},{r[5]},{r[6]:.3f},{r[7]:.4f}\n")
     print(f"[heldout] wrote {args.out} ({len(queries)} queries) -> grade_heldout.py --sweep {args.out}")
 
 
