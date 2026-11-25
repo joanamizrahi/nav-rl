@@ -24,7 +24,11 @@ done
 
 OUT=/scratch/m000204-pm07b/joana/outputs
 SEM=${LIVECKPT:-/scratch/m000204-pm07b/joana/runs/train_semantic_v35b_p6_ppl5/checkpoint-epoch-3.safetensors}
-D=$(ls -d $OUT/*_j${JOB} 2>/dev/null | head -1) || true
+D=""
+for _o in /scratch/m000204-pm07b/joana/outputs /scratch/m000204-pm06b/joana/outputs; do
+    _n=$(ls "$_o" 2>/dev/null | grep "_j${JOB}$" | head -1) || true
+    [ -n "$_n" ] && { D="$_o/$_n"; break; }
+done
 [ -n "${D:-}" ] || { echo "REFUSED: no run directory for job $JOB"; exit 1; }
 if [ -n "$CKPT_WANT" ]; then
     C=$D/checkpoints/ppo_${CKPT_WANT}_steps.zip

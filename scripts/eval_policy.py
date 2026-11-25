@@ -522,6 +522,10 @@ def main():
                     default="/scratch/m000204-pm07b/joana/NeoVerse/models/NeoVerse/reconstructor.ckpt")
     ap.add_argument("--out_dir", type=Path, required=True)
     ap.add_argument("--videos", type=int, default=3)
+    ap.add_argument("--record", type=int, default=0,
+                    help="record the first N SCORED episodes as videos (generated image | generated labels, "
+                         "coverage and outcome printed) while they run -- no second rollout. Sets --videos 0. "
+                         "(2026-11-24: --videos re-ran every video episode, doubling its cost)")
     ap.add_argument("--obs_cache", default=None,
                     help="ribbon-cache root; evaluate on cached diffused obs "
                          "(must match what the checkpoint trained on)")
@@ -929,6 +933,13 @@ def main():
     from train_ppo_real import save_rollout_video
 
     results, video_records = [], []
+    if int(getattr(args, "record", 0) or 0) > 0:
+        args.videos = 0
+        try:
+            from diffsynth.utils.class_taxonomy import v14_palette
+            _rec_pal = (v14_palette(int(getattr(args, "sem_palette", 6) or 6)).numpy() * 255).astype(np.uint8)
+        except Exception:
+            _rec_pal = (np.random.default_rng(0).integers(0, 255, size=(32, 3))).astype(np.uint8)
     agree_rows = []   # per step: alpha, gen frac, map frac, gen class, map class, map void
     for ep in range(args.episodes):
         if ep < args.videos:
@@ -976,6 +987,8 @@ def main():
         last_phantom = 0.0
         bm_hit, bm_miss = 0, 0
         ep_obs, ep_goal, ep_act = [], [], []
+        _rec = ep < int(getattr(args, "record", 0) or 0)
+        _rec_frames = []
         while not done:
             # --stochastic samples the action exactly as PPO does during rollout collection
             # (mean + N(0, std)); the default is the deterministic mean. Training curves are
@@ -989,8 +1002,16 @@ def main():
             if args.expert == "path" and args.path_frames:
                 _pre_rgb = None if env.unwrapped._last_rgb is None else np.asarray(env.unwrapped._last_rgb, dtype=np.uint8).copy()
                 _pre_pose = _pose_xyyaw(env)
+            if _rec:
+                _pre = getattr(env.unwrapped, "_last_rgb", None)
+                _pre = None if _pre is None else np.asarray(_pre, dtype=np.uint8).copy()
             obs, r, term, trunc, info = env.step(action)
             total_r += float(r)
+            if _rec and _pre is not None:
+                _fm = getattr(env.unwrapped, "_frame_memory", None) or []
+                _lab = None if not _fm or _fm[-1][0] is None else np.asarray(_fm[-1][0]).astype(np.int64)
+                _rec_frames.append((_pre, _lab, float(info.get("coverage", float("nan"))),
+                                    float(max(0.0, -info.get("collision", 0.0)))))
             if args.expert == "path":
                 _u = env.unwrapped
                 _row = {"ep": ep, "scene": model.cur["scene"], "pair": model.cur["pair"], "kind": model.cur["kind"],
@@ -1081,6 +1102,31 @@ def main():
             outcome = "HALTED"
         else:
             outcome = "TIMEOUT"
+        if _rec and _rec_frames:
+            try:
+                import cv2
+                vw = None
+                for i, (rgb, lab, cov, frac) in enumerate(_rec_frames):
+                    h, w = rgb.shape[:2]
+                    if lab is None:
+                        lab_img = np.zeros_like(rgb)
+                    else:
+                        if lab.shape != (h, w):
+                            lab = cv2.resize(lab.astype(np.int32), (w, h), interpolation=cv2.INTER_NEAREST)
+                        lab_img = (0.6 * _rec_pal[np.clip(lab, 0, len(_rec_pal) - 1)] + 0.4 * rgb).astype(np.uint8)
+                    fr = np.concatenate([rgb, lab_img], axis=1)[:, :, ::-1].copy()
+                    txt = f"ep {ep}  step {i}  C_w {cov:.2f}  footprint no-go {frac:.2f}"
+                    if i == len(_rec_frames) - 1:
+                        txt += f"  -> {outcome}"
+                    cv2.putText(fr, txt, (10, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                    if vw is None:
+                        vw = cv2.VideoWriter(str(args.out_dir / f"episode_{ep}.mp4"), cv2.VideoWriter_fourcc(*"mp4v"),
+                                             4, (fr.shape[1], fr.shape[0]))
+                    vw.write(fr)
+                if vw is not None:
+                    vw.release()
+            except Exception as _e:
+                print(f"[eval] recording episode {ep} failed: {type(_e).__name__}: {_e}", flush=True)
         results.append({"episode": ep, "success": bool(term),
                         "outcome": outcome,
                         "steps": steps, "return": round(total_r, 2),

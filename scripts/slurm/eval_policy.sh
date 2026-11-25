@@ -370,6 +370,8 @@ if [[ "${LIVE:-0}" == "1" ]]; then
     OUT_SUFFIX="${OUT_SUFFIX}_live"
 fi
 if [[ "${VIDEOS:-}" != "" ]]; then EXTRA_ARGS+=(--videos "$VIDEOS"); fi
+# RECORD=N (2026-11-24): record the first N SCORED episodes while they run (no second rollout)
+if [[ "${RECORD:-}" != "" ]]; then EXTRA_ARGS+=(--record "$RECORD"); fi
 echo "==> eval: $RUN_NAME / $(basename "$CKPT") scene=$SCENE spawn_max=${SPAWN_MAX:-default} goal=${GOAL_FRAME:-train(30)}"
 # Eval dir names hit the 255-char limit on 2026-09-04 (blind half of the T2
 # rerun, 467571): keep the head readable, hash the tail. Same rule as the
