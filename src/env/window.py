@@ -28,6 +28,12 @@ from typing import List
 
 _warned = set()
 
+# HELD-OUT SHIFT (2026-11-25, Jing's held-out test, scripts/heldout_sweep.py): the window is centred on
+# t_idx + SHIFT instead of t_idx. With |SHIFT| > window // 2 the query frame's own Gaussians are left out,
+# so a render at a recorded camera can be compared with that real frame. 0 = the normal centred window;
+# training and evaluation never set it.
+SHIFT = 0
+
 
 def window_gaussians(batch_gaussians: list, t_idx: int, window: int) -> list:
     """Restrict a scene's Gaussian groups (one batch: a list of Gaussians
@@ -41,7 +47,7 @@ def window_gaussians(batch_gaussians: list, t_idx: int, window: int) -> list:
     if window is None or window <= 0:
         return list(batch_gaussians)
     half = max(int(window) // 2, 0)
-    lo, hi = t_idx - half, t_idx + half
+    lo, hi = t_idx + SHIFT - half, t_idx + SHIFT + half
     out: List = []
     for g in batch_gaussians:
         ts = int(getattr(g, "timestamp", -1))
