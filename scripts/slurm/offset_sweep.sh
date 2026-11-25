@@ -54,13 +54,16 @@ for s in $SCENES; do
     # RENDERONLY=1 (2026-11-05): figure renders; skip SAM3 and grading
     [ "${RENDERONLY:-0}" = "1" ] && { echo "[1/3] $s: RENDERONLY, done"; continue; }
     # [2] SAM3 on the generated frames (reads the png directory in file order)
-    ln -sfn "$out/frames" "$S/NeoVerse/outputs/offset_frames_$s"
-    sam_npz="$S/NeoVerse/outputs/sam3_labels/offset_frames_$s.npz"
+    # 2026-11-24: the SAM 3 file is named after the sweep too. With only the scene in the name, a re-run
+    # into a new OUTROOT found the OLD sweep's SAM 3 labels, skipped stage 2 and graded new frames against them.
+    _tag=$(basename "$OUTROOT")
+    ln -sfn "$out/frames" "$S/NeoVerse/outputs/offset_frames_${_tag}_$s"
+    sam_npz="$S/NeoVerse/outputs/sam3_labels/offset_frames_${_tag}_$s.npz"
     if [ -f "$sam_npz" ]; then
         echo "[2/3] $s: SAM3 labels exist"
     else
         (export PATH=$SAM_ENV:$PATH; hash -r; cd $S/NeoVerse && python sam3_precompute_labels.py \
-            --input_path "outputs/offset_frames_$s" --static_scene --overlay_every 1000) \
+            --input_path "outputs/offset_frames_${_tag}_$s" --static_scene --overlay_every 1000) \
             || { echo "!!! stage2 FAILED: $s"; continue; }
     fi
     # [3] grade
