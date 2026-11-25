@@ -11,6 +11,11 @@ from pathlib import Path
 
 REF = Path(__file__).resolve().parents[1] / "configs/reference/env_config_paper_j503294.json"
 IGNORE = {"warmstart", "spawn_frames", "live_ckpt"}     # paths and derived lists, not settings
+# keys the paper run's config predates (added 2026-09-25, commit 1251b3b): the paper run used the code's
+# hard-wired values, which these defaults reproduce (GoalDistCurriculum(window=100, threshold=0.5, notch=0.5),
+# min episodes window//2, mean over scenes)
+PAPER_DEFAULTS = {"cur_threshold": 0.5, "cur_window": 100, "cur_notch": 0.5, "cur_min_episodes": None,
+                  "cur_per_scene": False}
 # settings that do nothing while another one is off: a difference there is reported but not a failure
 INACTIVE = {
     "goal_turn_from": lambda r: not r.get("goal_turn_deg") and not r.get("goal_turn_mix"),   # corner rule off
@@ -52,6 +57,9 @@ def main():
         elif a != b:
             if a == "<absent>" and b in (False, 0, 0.0, None, ""):
                 continue                                  # a key added after the paper run, at its off value
+            if a == "<absent>" and k in PAPER_DEFAULTS and b == PAPER_DEFAULTS[k]:
+                print(f"paper-dflt  {k}: {b!r} (not saved in the paper run; same as the code then)")
+                continue
             if k in INACTIVE and INACTIVE[k](run) and INACTIVE[k](ref):
                 print(f"inactive    {k}: paper {a!r}, run {b!r} (has no effect: its switch is off in both)")
                 continue
