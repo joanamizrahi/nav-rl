@@ -10,6 +10,9 @@ CPU only (numpy + PIL), runs on the login node next to the data. Writes <sweep>/
   hint_trav_seen   the rasterized hint's walkable-vs-not accuracy on seen pixels (sanity: should be high)
   rgb_l1 / rgb_l1_unseen   mean |generated - real| per channel, 0-1
   frac_unseen      share of pixels with alpha <= 0.5
+  all_trav / all_class            WHOLE IMAGE, every pixel (2026-11-25, the supplement's numbers): traversable vs not
+                   with non-traversable = s(c)=0 (the paper's O), and exact class
+  s3_all_trav / s3_all_class      the same for SAM 3 on the generated image (with --sam3)
   --sam3 <npz>     (optional) SAM 3 run on the GENERATED frames (sam3_precompute_labels.py on frames/, raw prompt
                    indices, remapped to v14 here): the "segment the generated image" baseline, same truth:
     s3_acc_trav      SAM 3 on generated vs SAM 3 on real, walkable vs not; pixels SAM 3 left unlabelled on the generated
@@ -29,6 +32,10 @@ MOVERS = [12, 13]                    # person, vehicle: they move between frames
 SKY = 1                              # 2026-11-25: left out too -- it is neither walkable nor no-go, and counting it as
                                      # "walkable" (not in NOGO) made every view agree on the sky for free
 GROUND = [2, 3, 4, 5, 6, 7, 8, 9]    # trail grass rough water sidewalk road pavement stairs
+# 2026-11-25 (Joana): WHOLE-IMAGE scores, no pixel left out. Non-traversable = the paper's set O = every class with
+# s(c) = 0 in traversability_v14_walkway.yaml (supplement Table 2): void, sky, grass, water, obstacle, vegetation,
+# person, vehicle. Traversable: trail, rough, sidewalk, road, pavement, stairs.
+S_ZERO = [0, 1, 3, 5, 10, 11, 12, 13]
 
 
 def acc(a, b, m):
@@ -74,6 +81,13 @@ def main():
         gen = np.asarray(Image.open(d / "frames" / f"q_{i:04d}.png").convert("RGB"), np.float32) / 255
         real = np.asarray(Image.open(d / "gt" / f"q_{i:04d}.png").convert("RGB"), np.float32) / 255
         l1 = np.abs(gen - real).mean(-1)
+        o = np.zeros(32, bool); o[S_ZERO] = True
+        og, op = o[np.clip(g, 0, 31)], o[np.clip(p, 0, 31)]
+        wa = float(og.mean())
+        whole = dict(all_trav=float((og == op).mean()), all_class=float((g == p).mean()), all_chance=max(wa, 1 - wa))
+        if S3 is not None:
+            o3 = o[np.clip(S3[i], 0, 31)]
+            whole.update(s3_all_trav=float((og == o3).mean()), s3_all_class=float((g == S3[i]).mean()))
         ws = float(tg[valid].mean()) if valid.sum() else np.nan          # share of no-go pixels in the real frame
         rows.append(dict(q, acc_class=acc(p, g, valid), acc_trav=acc(tp, tg, valid),
                          chance_trav=max(ws, 1 - ws) if ws == ws else np.nan,      # always guessing the bigger side
@@ -82,7 +96,7 @@ def main():
                          acc_trav_ahead=acc(tp, tg, valid & box), hint_trav_seen=acc(th, tg, valid & seen & (h > 0)),
                          rgb_l1=float(l1.mean()), rgb_l1_unseen=float(l1[~seen].mean()) if (~seen).sum() >= 50 else np.nan,
                          frac_unseen=float((~seen).mean()),
-                         **({} if S3 is None else s3_scores(S3[i], g, valid, nogo))))
+                         **whole, **({} if S3 is None else s3_scores(S3[i], g, valid, nogo))))
     cols = list(rows[0])
     with open(d / "graded.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=cols); w.writeheader(); w.writerows(rows)
