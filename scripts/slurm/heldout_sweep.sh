@@ -11,7 +11,7 @@
 #SBATCH --exclude=n04,n13,n17,n18,n24
 # HELD-OUT SWEEP (2026-11-25, Jing's idea): render at recorded cameras from a window of OTHER frames and grade
 # against the real frame (scripts/heldout_sweep.py, grade_heldout.py). Stages: [1] render (neoverse env)  [2] grade.
-# Knobs: SCENES (required), LIVECKPT, SEMPAL, RENDWIN, COVWIN, GAPS, BASE_EVERY (4), BASE_LO (6), BASE_HI (74), OUTROOT.
+# Knobs: SCENES (required), LIVECKPT, SEMPAL, RENDWIN, COVWIN, GAPS, SIDES (behind,ahead), BASE_EVERY (4), BASE_LO (6), BASE_HI (74), OUTROOT.
 set -uo pipefail
 if command -v module >/dev/null 2>&1; then
     module load conda/24.3.0-0
@@ -40,7 +40,7 @@ for s in $SCENES; do
         (export PATH=$NEO_ENV:$PATH; hash -r; cd $S/nav-rl && python scripts/heldout_sweep.py --scene "$s" \
             --clips_dir "$CLIPS" --poses_dir "$POSES" --labels_dir "$LABELS" --live_ckpt "$LIVECKPT" \
             --sem_palette "$SEMPAL" --render_window "$RENDWIN" --coverage_window "$COVWIN" --gaps "$GAPS" \
-            --base_every "${BASE_EVERY:-4}" --base_lo "${BASE_LO:-6}" --base_hi "${BASE_HI:-74}" --out "$out") \
+            --base_every "${BASE_EVERY:-4}" --base_lo "${BASE_LO:-6}" --base_hi "${BASE_HI:-74}" --sides "${SIDES:-behind,ahead}" --out "$out") \
             || { echo "!!! stage1 FAILED: $s"; continue; }
     fi
     (export PATH=$NEO_ENV:$PATH; hash -r; cd $S/nav-rl && python scripts/grade_heldout.py --sweep "$out") \
