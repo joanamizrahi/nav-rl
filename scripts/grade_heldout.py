@@ -10,11 +10,16 @@ CPU only (numpy + PIL), runs on the login node next to the data. Writes <sweep>/
   hint_trav_seen   the rasterized hint's walkable-vs-not accuracy on seen pixels (sanity: should be high)
   rgb_l1 / rgb_l1_unseen   mean |generated - real| per channel, 0-1
   frac_unseen      share of pixels with alpha <= 0.5
+  --sam3 <npz>     (optional) SAM 3 run on the GENERATED frames (sam3_precompute_labels.py on frames/, raw prompt
+                   indices, remapped to v14 here): the "segment the generated image" baseline, same truth:
+    s3_acc_trav      SAM 3 on generated vs SAM 3 on real, walkable vs not; pixels SAM 3 left unlabelled on the generated
+                     frame count as WRONG (as in the paper's 76.6 vs 57.4 comparison)
+    s3_acc_trav_lab  the same over only the pixels it did label;   s3_labelled  share of scored pixels it labelled
 Ground truth is SAM 3 on the real frame, not a human: these are agreement-with-SAM 3 numbers.
 
     python scripts/grade_heldout.py --sweep /scratch/.../outputs/heldout_v35b/quad2_01
 """
-import argparse, csv
+import argparse, csv, importlib.util
 from pathlib import Path
 import numpy as np
 from PIL import Image
@@ -30,8 +35,26 @@ def acc(a, b, m):
     return float((a[m] == b[m]).mean()) if m.sum() >= 50 else np.nan
 
 
+def s3_scores(s3, g, valid, nogo):
+    lab = valid & (s3 > 0) & (s3 != SKY)
+    ok = nogo[np.clip(s3, 0, 31)] == nogo[np.clip(g, 0, 31)]
+    n = valid.sum()
+    return dict(s3_acc_trav=float((ok & lab).sum() / n) if n >= 50 else np.nan,
+                s3_acc_trav_lab=acc(nogo[np.clip(s3, 0, 31)], nogo[np.clip(g, 0, 31)], lab),
+                s3_labelled=float(lab.sum() / n) if n >= 50 else np.nan)
+
+
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--sweep", required=True, type=Path); a = ap.parse_args()
+    ap = argparse.ArgumentParser(); ap.add_argument("--sweep", required=True, type=Path)
+    ap.add_argument("--sam3", type=Path, default=None)
+    ap.add_argument("--neoverse", type=Path, default=Path("/scratch/m000204-pm07b/joana/NeoVerse")); a = ap.parse_args()
+    S3 = None
+    if a.sam3 is not None and a.sam3.exists():
+        spec = importlib.util.spec_from_file_location("ct", a.neoverse / "diffsynth/utils/class_taxonomy.py")
+        ct = importlib.util.module_from_spec(spec); spec.loader.exec_module(ct)
+        z = np.load(a.sam3); lut = ct.remap_array_from_names([str(n) for n in z["class_names"]])
+        S3 = lut[np.clip(z["labels"].astype(np.int64), 0, len(lut) - 1)].astype(np.int64)
+        print(f"SAM 3 on generated frames: {S3.shape} from {a.sam3}")
     d = a.sweep
     Q = list(csv.DictReader(open(d / "queries.csv")))
     P = np.load(d / "semantic_labels.npz")["labels"].astype(np.int64)
@@ -58,7 +81,8 @@ def main():
                          acc_trav_seen=acc(tp, tg, valid & seen), acc_trav_unseen=acc(tp, tg, valid & ~seen),
                          acc_trav_ahead=acc(tp, tg, valid & box), hint_trav_seen=acc(th, tg, valid & seen & (h > 0)),
                          rgb_l1=float(l1.mean()), rgb_l1_unseen=float(l1[~seen].mean()) if (~seen).sum() >= 50 else np.nan,
-                         frac_unseen=float((~seen).mean())))
+                         frac_unseen=float((~seen).mean()),
+                         **({} if S3 is None else s3_scores(S3[i], g, valid, nogo))))
     cols = list(rows[0])
     with open(d / "graded.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=cols); w.writeheader(); w.writerows(rows)
